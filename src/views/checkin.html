@@ -1,0 +1,426 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Check-In — Silver Glider</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      background: #0a0a0a;
+      color: #f0f0f0;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      min-height: 100vh;
+    }
+
+    header {
+      background: #111;
+      border-bottom: 1px solid #222;
+      padding: 16px 20px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    header h1 {
+      font-size: 18px;
+      font-weight: 600;
+      letter-spacing: 0.05em;
+    }
+
+    header span {
+      font-size: 12px;
+      color: #666;
+    }
+
+    #logout-btn {
+      background: none;
+      border: 1px solid #333;
+      color: #888;
+      padding: 6px 12px;
+      border-radius: 6px;
+      font-size: 12px;
+      cursor: pointer;
+    }
+
+    .container {
+      padding: 20px;
+      max-width: 600px;
+      margin: 0 auto;
+    }
+
+    #login-screen, #checkin-screen {
+      display: none;
+    }
+
+    #login-screen.active, #checkin-screen.active {
+      display: block;
+    }
+
+    .card {
+      background: #111;
+      border: 1px solid #222;
+      border-radius: 12px;
+      padding: 24px;
+      margin-bottom: 16px;
+    }
+
+    .card h2 {
+      font-size: 16px;
+      margin-bottom: 20px;
+      color: #ccc;
+      letter-spacing: 0.05em;
+      text-transform: uppercase;
+      font-size: 12px;
+    }
+
+    input, select {
+      width: 100%;
+      background: #1a1a1a;
+      border: 1px solid #2a2a2a;
+      color: #f0f0f0;
+      padding: 14px 16px;
+      border-radius: 8px;
+      font-size: 16px;
+      margin-bottom: 12px;
+      outline: none;
+      -webkit-appearance: none;
+    }
+
+    input:focus, select:focus {
+      border-color: #444;
+    }
+
+    input::placeholder {
+      color: #444;
+    }
+
+    button.primary {
+      width: 100%;
+      background: #f0f0f0;
+      color: #0a0a0a;
+      border: none;
+      padding: 14px;
+      border-radius: 8px;
+      font-size: 16px;
+      font-weight: 600;
+      cursor: pointer;
+      letter-spacing: 0.02em;
+    }
+
+    button.primary:active {
+      background: #ccc;
+    }
+
+    #error-msg {
+      color: #ff4444;
+      font-size: 14px;
+      margin-top: 8px;
+      text-align: center;
+    }
+
+    #search-box {
+      width: 100%;
+      background: #1a1a1a;
+      border: 1px solid #2a2a2a;
+      color: #f0f0f0;
+      padding: 14px 16px;
+      border-radius: 8px;
+      font-size: 16px;
+      outline: none;
+      margin-bottom: 16px;
+    }
+
+    #search-box:focus {
+      border-color: #444;
+    }
+
+    .result-card {
+      background: #111;
+      border: 1px solid #222;
+      border-radius: 12px;
+      padding: 20px;
+      margin-bottom: 12px;
+    }
+
+    .result-card .name {
+      font-size: 20px;
+      font-weight: 600;
+      margin-bottom: 4px;
+    }
+
+    .result-card .meta {
+      font-size: 13px;
+      color: #666;
+      margin-bottom: 16px;
+    }
+
+    .ticket-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 12px 0;
+      border-top: 1px solid #1a1a1a;
+    }
+
+    .ticket-row .ticket-info {
+      font-size: 13px;
+    }
+
+    .ticket-row .ticket-id {
+      font-family: monospace;
+      font-size: 14px;
+      color: #aaa;
+    }
+
+    .badge {
+      font-size: 11px;
+      padding: 4px 10px;
+      border-radius: 20px;
+      font-weight: 600;
+      letter-spacing: 0.05em;
+      text-transform: uppercase;
+    }
+
+    .badge.valid {
+      background: #1a2a1a;
+      color: #4caf50;
+      border: 1px solid #2a4a2a;
+    }
+
+    .badge.checked {
+      background: #1a1a2a;
+      color: #5588ff;
+      border: 1px solid #2a2a4a;
+    }
+
+    .checkin-btn {
+      background: #4caf50;
+      color: #fff;
+      border: none;
+      padding: 8px 16px;
+      border-radius: 6px;
+      font-size: 13px;
+      font-weight: 600;
+      cursor: pointer;
+    }
+
+    .checkin-btn:active {
+      background: #388e3c;
+    }
+
+    .checkin-btn:disabled {
+      background: #222;
+      color: #444;
+      cursor: default;
+    }
+
+    #no-results {
+      text-align: center;
+      color: #444;
+      padding: 40px 0;
+      display: none;
+    }
+
+    #event-name {
+      font-size: 13px;
+      color: #888;
+      margin-bottom: 16px;
+    }
+  </style>
+</head>
+<body>
+
+<header>
+  <h1>⬡ Silver Glider</h1>
+  <div>
+    <span id="staff-name"></span>
+    <button id="logout-btn" style="display:none" onclick="logout()">Log out</button>
+  </div>
+</header>
+
+<div class="container">
+
+  <!-- LOGIN SCREEN -->
+  <div id="login-screen" class="active">
+    <div style="height: 40px"></div>
+    <div class="card">
+      <h2>Staff Login</h2>
+      <input type="email" id="login-email" placeholder="Email" autocomplete="email">
+      <input type="password" id="login-password" placeholder="Password">
+      <button class="primary" onclick="doLogin()">Sign In</button>
+      <div id="error-msg"></div>
+    </div>
+  </div>
+
+  <!-- CHECK-IN SCREEN -->
+  <div id="checkin-screen">
+    <div style="height: 20px"></div>
+    <select id="event-select" onchange="loadEvent()">
+      <option value="">Select event...</option>
+    </select>
+    <div id="event-name"></div>
+    <input type="search" id="search-box" placeholder="Search name, email, or confirmation #" oninput="doSearch()" style="display:none">
+    <div id="results"></div>
+    <div id="no-results">No results found</div>
+  </div>
+
+</div>
+
+<script>
+  let token = localStorage.getItem('sgt_token');
+  let currentEventId = null;
+  let searchTimeout = null;
+
+  if (token) showCheckinScreen();
+
+  async function doLogin() {
+    const email = document.getElementById('login-email').value;
+    const password = document.getElementById('login-password').value;
+    const errEl = document.getElementById('error-msg');
+    errEl.textContent = '';
+
+    try {
+      const res = await fetch('/api/auth/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email, password })
+      });
+      const data = await res.json();
+      if (!res.ok) return errEl.textContent = data.error;
+
+      token = data.token;
+      localStorage.setItem('sgt_token', token);
+      document.getElementById('staff-name').textContent = data.first_name;
+      showCheckinScreen();
+    } catch {
+      errEl.textContent = 'Connection error';
+    }
+  }
+
+  async function showCheckinScreen() {
+    document.getElementById('login-screen').classList.remove('active');
+    document.getElementById('checkin-screen').classList.add('active');
+    document.getElementById('logout-btn').style.display = 'inline-block';
+
+    try {
+      const res = await fetch('/api/events', {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      if (res.status === 401) return logout();
+      const events = await res.json();
+      const select = document.getElementById('event-select');
+      events.forEach(e => {
+        const opt = document.createElement('option');
+        opt.value = e.id;
+        opt.textContent = `${e.name} — ${new Date(e.event_date).toLocaleDateString()}`;
+        select.appendChild(opt);
+      });
+    } catch {}
+  }
+
+  function loadEvent() {
+    currentEventId = document.getElementById('event-select').value;
+    const searchBox = document.getElementById('search-box');
+    document.getElementById('results').innerHTML = '';
+    document.getElementById('no-results').style.display = 'none';
+
+    if (currentEventId) {
+      searchBox.style.display = 'block';
+      searchBox.value = '';
+      searchBox.focus();
+    } else {
+      searchBox.style.display = 'none';
+    }
+  }
+
+  function doSearch() {
+    clearTimeout(searchTimeout);
+    searchTimeout = setTimeout(runSearch, 300);
+  }
+
+  async function runSearch() {
+    const q = document.getElementById('search-box').value.trim();
+    if (!currentEventId || q.length < 2) {
+      document.getElementById('results').innerHTML = '';
+      return;
+    }
+
+    try {
+      const res = await fetch(`/api/orders?event_id=${currentEventId}&q=${encodeURIComponent(q)}`, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      const orders = await res.json();
+      renderResults(orders);
+    } catch {}
+  }
+
+  async function renderResults(orders) {
+    const container = document.getElementById('results');
+    const noResults = document.getElementById('no-results');
+    container.innerHTML = '';
+
+    if (!orders.length) {
+      noResults.style.display = 'block';
+      return;
+    }
+    noResults.style.display = 'none';
+
+    for (const order of orders) {
+      const ticketRes = await fetch(`/api/tickets/order/${order.id}`, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      const tickets = await ticketRes.json();
+
+      const card = document.createElement('div');
+      card.className = 'result-card';
+      card.innerHTML = `
+        <div class="name">${order.buyer_last_name}, ${order.buyer_first_name}</div>
+        <div class="meta">${order.order_number} &nbsp;·&nbsp; ${order.quantity} ticket${order.quantity > 1 ? 's' : ''} &nbsp;·&nbsp; ${order.buyer_email}</div>
+        ${tickets.map(t => `
+          <div class="ticket-row" id="row-${t.ticket_id}">
+            <div class="ticket-info">
+              <div class="ticket-id">${t.ticket_id}</div>
+              <div style="font-size:12px;color:#555;margin-top:2px">${t.ticket_type}</div>
+            </div>
+            ${t.checkin_status === 'checked_in'
+              ? `<span class="badge checked">Checked In</span>`
+              : `<button class="checkin-btn" onclick="checkIn('${t.ticket_id}', this)">Check In</button>`
+            }
+          </div>
+        `).join('')}
+      `;
+      container.appendChild(card);
+    }
+  }
+
+  async function checkIn(ticketId, btn) {
+    btn.disabled = true;
+    btn.textContent = '...';
+    try {
+      const res = await fetch(`/api/tickets/checkin/${ticketId}`, {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      const data = await res.json();
+      if (data.success) {
+        const row = document.getElementById(`row-${ticketId}`);
+        row.querySelector('.checkin-btn').outerHTML = `<span class="badge checked">Checked In</span>`;
+      } else {
+        btn.textContent = 'Error';
+      }
+    } catch {
+      btn.disabled = false;
+      btn.textContent = 'Check In';
+    }
+  }
+
+  function logout() {
+    localStorage.removeItem('sgt_token');
+    location.reload();
+  }
+</script>
+
+</body>
+</html>

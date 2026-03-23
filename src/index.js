@@ -13,6 +13,10 @@ app.use('/api/orders', require('./routes/orders'));
 app.use('/api/tickets', require('./routes/tickets'));
 app.use('/wallet', require('./routes/wallet'));
 
+app.get('/checkin', (req, res) => {
+  res.sendFile(path.join(__dirname, 'views/checkin.html'));
+});
+
 app.use(require('./middleware/errorHandler'));
 
 const PORT = process.env.PORT || 3000;

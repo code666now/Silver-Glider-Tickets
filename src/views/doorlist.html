@@ -1,0 +1,193 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Door List — Silver Glider</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:#0a0a0a;color:#f0f0f0;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;min-height:100vh}
+header{background:#111;border-bottom:1px solid #222;padding:16px 24px;display:flex;align-items:center;justify-content:space-between;gap:16px;flex-wrap:wrap}
+header h1{font-size:18px;font-weight:600;letter-spacing:.05em}
+.header-actions{display:flex;gap:10px;align-items:center}
+button.action{background:#1a1a1a;border:1px solid #333;color:#ccc;padding:8px 16px;border-radius:6px;font-size:13px;cursor:pointer}
+button.action:hover{border-color:#555;color:#fff}
+#logout-btn{background:none;border:1px solid #333;color:#666;padding:6px 12px;border-radius:6px;font-size:12px;cursor:pointer}
+.container{padding:24px;max-width:1100px;margin:0 auto}
+#login-screen,#main-screen{display:none}
+#login-screen.active,#main-screen.active{display:block}
+.card{background:#111;border:1px solid #222;border-radius:12px;padding:24px;max-width:400px;margin:60px auto}
+.card h2{font-size:12px;color:#666;letter-spacing:.05em;text-transform:uppercase;margin-bottom:20px}
+input,select{width:100%;background:#1a1a1a;border:1px solid #2a2a2a;color:#f0f0f0;padding:12px 14px;border-radius:8px;font-size:15px;margin-bottom:12px;outline:none}
+input:focus,select:focus{border-color:#444}
+input::placeholder{color:#444}
+button.primary-full{width:100%;background:#f0f0f0;color:#0a0a0a;border:none;padding:13px;border-radius:8px;font-size:15px;font-weight:600;cursor:pointer}
+#error-msg{color:#ff4444;font-size:13px;margin-top:8px;text-align:center}
+.toolbar{display:flex;gap:12px;margin-bottom:20px;flex-wrap:wrap;align-items:center}
+#event-select{background:#1a1a1a;border:1px solid #2a2a2a;color:#f0f0f0;padding:10px 14px;border-radius:8px;font-size:14px;outline:none;margin-bottom:0;min-width:240px}
+#search-input{background:#1a1a1a;border:1px solid #2a2a2a;color:#f0f0f0;padding:10px 14px;border-radius:8px;font-size:14px;outline:none;margin-bottom:0;flex:1;min-width:200px}
+.stats{display:flex;gap:20px;margin-bottom:20px;flex-wrap:wrap}
+.stat{background:#111;border:1px solid #222;border-radius:8px;padding:14px 20px;min-width:120px}
+.stat .label{font-size:11px;color:#555;text-transform:uppercase;letter-spacing:.05em;margin-bottom:4px}
+.stat .value{font-size:24px;font-weight:700}
+.stat .value.green{color:#4caf50}
+.stat .value.yellow{color:#ffc107}
+table{width:100%;border-collapse:collapse;font-size:14px}
+thead th{text-align:left;padding:10px 14px;font-size:11px;color:#555;text-transform:uppercase;letter-spacing:.05em;border-bottom:1px solid #1a1a1a}
+tbody tr{border-bottom:1px solid #161616}
+tbody tr:hover{background:#111}
+tbody td{padding:12px 14px}
+.badge{font-size:11px;padding:3px 9px;border-radius:20px;font-weight:600;letter-spacing:.04em;text-transform:uppercase}
+.badge.checked{background:#1a1a2a;color:#5588ff;border:1px solid #2a2a4a}
+.badge.not-checked{background:#1a1a1a;color:#555;border:1px solid #222}
+.checkin-btn{background:#4caf50;color:#fff;border:none;padding:6px 14px;border-radius:6px;font-size:12px;font-weight:600;cursor:pointer}
+#no-data{text-align:center;color:#333;padding:60px 0;font-size:14px}
+@media print{body{background:#fff;color:#000}header,.toolbar,.stats,.checkin-btn,#logout-btn,.header-actions{display:none!important}table{font-size:12px}thead th{color:#000;border-bottom:2px solid #000}tbody tr{border-bottom:1px solid #ccc}.badge.checked{background:none;color:#000;border:1px solid #000}.badge.not-checked{background:none;color:#999;border:1px solid #ccc}}
+</style>
+</head>
+<body>
+<header>
+<h1>⬡ Silver Glider — Door List</h1>
+<div class="header-actions">
+<button class="action" onclick="exportCSV()">Export CSV</button>
+<button class="action" onclick="window.print()">Print</button>
+<button id="logout-btn" style="display:none" onclick="logout()">Log out</button>
+</div>
+</header>
+<div class="container">
+<div id="login-screen" class="active">
+<div class="card">
+<h2>Admin Login</h2>
+<input type="email" id="login-email" placeholder="Email">
+<input type="password" id="login-password" placeholder="Password">
+<button class="primary-full" onclick="doLogin()">Sign In</button>
+<div id="error-msg"></div>
+</div>
+</div>
+<div id="main-screen">
+<div style="height:24px"></div>
+<div class="toolbar">
+<select id="event-select" onchange="loadDoorList()"><option value="">Select event...</option></select>
+<input type="search" id="search-input" placeholder="Search name, email, confirmation #" oninput="filterTable()">
+</div>
+<div class="stats" id="stats" style="display:none">
+<div class="stat"><div class="label">Total</div><div class="value" id="stat-total">0</div></div>
+<div class="stat"><div class="label">Checked In</div><div class="value green" id="stat-checked">0</div></div>
+<div class="stat"><div class="label">Remaining</div><div class="value yellow" id="stat-remaining">0</div></div>
+</div>
+<div id="no-data">Select an event to view the door list</div>
+<table id="door-table" style="display:none">
+<thead><tr><th>Last Name</th><th>First Name</th><th>Qty</th><th>Type</th><th>Confirmation #</th><th>Email</th><th>Status</th><th></th></tr></thead>
+<tbody id="door-tbody"></tbody>
+</table>
+</div>
+</div>
+<script>
+let token=localStorage.getItem('sgt_token');
+let allOrders=[];
+let allTickets=[];
+let currentEventId=null;
+if(token)showMain();
+async function doLogin(){
+const email=document.getElementById('login-email').value;
+const password=document.getElementById('login-password').value;
+const errEl=document.getElementById('error-msg');
+errEl.textContent='';
+try{
+const res=await fetch('/api/auth/login',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({email,password})});
+const data=await res.json();
+if(!res.ok)return errEl.textContent=data.error;
+token=data.token;
+localStorage.setItem('sgt_token',token);
+showMain();
+}catch{errEl.textContent='Connection error';}
+}
+async function showMain(){
+document.getElementById('login-screen').classList.remove('active');
+document.getElementById('main-screen').classList.add('active');
+document.getElementById('logout-btn').style.display='inline-block';
+try{
+const res=await fetch('/api/events',{headers:{Authorization:`Bearer ${token}`}});
+if(res.status===401)return logout();
+const events=await res.json();
+const select=document.getElementById('event-select');
+events.forEach(e=>{const opt=document.createElement('option');opt.value=e.id;opt.textContent=`${e.name} — ${new Date(e.event_date).toLocaleDateString()}`;select.appendChild(opt);});
+}catch{}
+}
+async function loadDoorList(){
+currentEventId=document.getElementById('event-select').value;
+if(!currentEventId)return;
+try{
+const[ordersRes,ticketsRes]=await Promise.all([
+fetch(`/api/orders?event_id=${currentEventId}`,{headers:{Authorization:`Bearer ${token}`}}),
+fetch(`/api/tickets/event/${currentEventId}`,{headers:{Authorization:`Bearer ${token}`}})
+]);
+allOrders=await ordersRes.json();
+allTickets=await ticketsRes.json();
+renderTable(allOrders,allTickets);
+}catch{}
+}
+function renderTable(orders,tickets){
+const tbody=document.getElementById('door-tbody');
+tbody.innerHTML='';
+if(!orders.length){
+document.getElementById('door-table').style.display='none';
+document.getElementById('stats').style.display='none';
+document.getElementById('no-data').textContent='No orders for this event yet';
+document.getElementById('no-data').style.display='block';
+return;
+}
+document.getElementById('door-table').style.display='table';
+document.getElementById('stats').style.display='flex';
+document.getElementById('no-data').style.display='none';
+let checkedCount=0,totalTickets=0;
+orders.forEach(order=>{
+const orderTickets=tickets.filter(t=>t.order_id===order.id);
+const checkedIn=orderTickets.filter(t=>t.checkin_status==='checked_in').length;
+const allChecked=orderTickets.length>0&&checkedIn===orderTickets.length;
+checkedCount+=checkedIn;totalTickets+=orderTickets.length;
+const tr=document.createElement('tr');
+tr.dataset.search=`${order.buyer_last_name} ${order.buyer_first_name} ${order.buyer_email} ${order.order_number}`.toLowerCase();
+tr.innerHTML=`<td><strong>${order.buyer_last_name}</strong></td><td>${order.buyer_first_name}</td><td>${order.quantity}</td><td style="color:#666;font-size:12px">${orderTickets[0]?.ticket_type||'GA'}</td><td style="font-family:monospace;font-size:13px">${order.order_number}</td><td style="color:#666;font-size:12px">${order.buyer_email}</td><td id="status-${order.id}">${allChecked?'<span class="badge checked">Checked In</span>':`<span class="badge not-checked">${checkedIn>0?checkedIn+'/'+orderTickets.length:'Not In'}</span>`}</td><td>${allChecked?'':`<button class="checkin-btn" onclick="checkInOrder(${order.id},this)">Check In</button>`}</td>`;
+tbody.appendChild(tr);
+});
+document.getElementById('stat-total').textContent=totalTickets;
+document.getElementById('stat-checked').textContent=checkedCount;
+document.getElementById('stat-remaining').textContent=totalTickets-checkedCount;
+}
+function filterTable(){
+const q=document.getElementById('search-input').value.toLowerCase();
+document.querySelectorAll('#door-tbody tr').forEach(tr=>{tr.style.display=tr.dataset.search.includes(q)?'':'none';});
+}
+async function checkInOrder(orderId,btn){
+btn.disabled=true;btn.textContent='...';
+const orderTickets=allTickets.filter(t=>t.order_id===orderId);
+let success=0;
+for(const ticket of orderTickets){
+if(ticket.checkin_status==='not_checked_in'){
+try{const res=await fetch(`/api/tickets/checkin/${ticket.ticket_id}`,{method:'POST',headers:{Authorization:`Bearer ${token}`}});if(res.ok){ticket.checkin_status='checked_in';success++;}}catch{}
+}}
+if(success>0){
+document.getElementById(`status-${orderId}`).innerHTML='<span class="badge checked">Checked In</span>';
+btn.remove();
+document.getElementById('stat-checked').textContent=parseInt(document.getElementById('stat-checked').textContent)+success;
+document.getElementById('stat-remaining').textContent=parseInt(document.getElementById('stat-remaining').textContent)-success;
+}else{btn.textContent='Error';}
+}
+function exportCSV(){
+if(!allOrders.length)return;
+const rows=[['Last Name','First Name','Email','Qty','Confirmation #','Status']];
+allOrders.forEach(order=>{
+const orderTickets=allTickets.filter(t=>t.order_id===order.id);
+const allChecked=orderTickets.every(t=>t.checkin_status==='checked_in');
+rows.push([order.buyer_last_name,order.buyer_first_name,order.buyer_email,order.quantity,order.order_number,allChecked?'Checked In':'Not Checked In']);
+});
+const csv=rows.map(r=>r.map(v=>`"${v}"`).join(',')).join('\n');
+const blob=new Blob([csv],{type:'text/csv'});
+const url=URL.createObjectURL(blob);
+const a=document.createElement('a');a.href=url;a.download=`door-list.csv`;a.click();
+}
+function logout(){localStorage.removeItem('sgt_token');location.reload();}
+</script>
+</body>
+</html>

@@ -1,0 +1,183 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Admin — Silver Glider</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:#0a0a0a;color:#f0f0f0;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;min-height:100vh}
+header{background:#111;border-bottom:1px solid #222;padding:16px 24px;display:flex;align-items:center;justify-content:space-between}
+header h1{font-size:18px;font-weight:600;letter-spacing:.05em}
+.nav{display:flex;gap:12px}
+.nav a{font-size:13px;color:#666;text-decoration:none;padding:6px 12px;border-radius:6px;border:1px solid #222}
+.nav a:hover{color:#fff;border-color:#444}
+.container{padding:24px;max-width:800px;margin:0 auto}
+#login-screen,#main-screen{display:none}
+#login-screen.active,#main-screen.active{display:block}
+.card{background:#111;border:1px solid #222;border-radius:12px;padding:24px;margin-bottom:24px}
+.card h2{font-size:12px;color:#666;letter-spacing:.05em;text-transform:uppercase;margin-bottom:20px}
+input,select{width:100%;background:#1a1a1a;border:1px solid #2a2a2a;color:#f0f0f0;padding:12px 14px;border-radius:8px;font-size:15px;margin-bottom:12px;outline:none}
+input:focus,select:focus{border-color:#444}
+input::placeholder{color:#444}
+.btn-primary{width:100%;background:#f0f0f0;color:#0a0a0a;border:none;padding:13px;border-radius:8px;font-size:15px;font-weight:600;cursor:pointer}
+.btn-primary:hover{background:#ddd}
+#error-msg,#success-msg{font-size:13px;margin-top:8px;text-align:center}
+#error-msg{color:#ff4444}
+#success-msg{color:#4caf50}
+.section-label{font-size:11px;color:#444;text-transform:uppercase;letter-spacing:.1em;margin-bottom:12px}
+table{width:100%;border-collapse:collapse;font-size:14px}
+thead th{text-align:left;padding:10px 14px;font-size:11px;color:#555;text-transform:uppercase;letter-spacing:.05em;border-bottom:1px solid #1a1a1a}
+tbody tr{border-bottom:1px solid #161616}
+tbody tr:hover{background:#111}
+tbody td{padding:12px 14px}
+.badge{font-size:11px;padding:3px 9px;border-radius:20px;font-weight:600;text-transform:uppercase}
+.badge.admin{background:#2a1a2a;color:#cc88ff;border:1px solid #4a2a4a}
+.badge.staff{background:#1a1a2a;color:#5588ff;border:1px solid #2a2a4a}
+.form-row{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+@media(max-width:500px){.form-row{grid-template-columns:1fr}}
+</style>
+</head>
+<body>
+<header>
+<h1>⬡ Silver Glider — Admin</h1>
+<div class="nav">
+<a href="/doorlist">Door List</a>
+<a href="/checkin">Check-In</a>
+<a href="#" onclick="logout()">Log out</a>
+</div>
+</header>
+<div class="container">
+
+<!-- LOGIN -->
+<div id="login-screen" class="active">
+<div style="height:40px"></div>
+<div class="card" style="max-width:400px;margin:0 auto">
+<h2>Admin Login</h2>
+<input type="email" id="login-email" placeholder="Email">
+<input type="password" id="login-password" placeholder="Password">
+<button class="btn-primary" onclick="doLogin()">Sign In</button>
+<div id="login-error" style="color:#ff4444;font-size:13px;margin-top:8px;text-align:center"></div>
+</div>
+</div>
+
+<!-- MAIN -->
+<div id="main-screen">
+<div style="height:24px"></div>
+
+<!-- CREATE STAFF -->
+<div class="card">
+<h2>Create Staff Account</h2>
+<div class="form-row">
+<input type="text" id="new-first" placeholder="First name">
+<input type="text" id="new-last" placeholder="Last name">
+</div>
+<input type="email" id="new-email" placeholder="Email">
+<input type="password" id="new-password" placeholder="Password" autocomplete="new-password">
+<select id="new-role">
+<option value="staff">Staff (check-in only)</option>
+<option value="admin">Admin (full access)</option>
+</select>
+<button class="btn-primary" onclick="createUser()">Create Account</button>
+<div id="error-msg"></div>
+<div id="success-msg"></div>
+</div>
+
+<!-- STAFF LIST -->
+<div class="card">
+<h2>All Users</h2>
+<div id="users-loading" style="color:#444;font-size:14px">Loading...</div>
+<table id="users-table" style="display:none">
+<thead><tr><th>Name</th><th>Email</th><th>Role</th><th>Created</th></tr></thead>
+<tbody id="users-tbody"></tbody>
+</table>
+</div>
+
+</div>
+</div>
+<script>
+let token=localStorage.getItem('sgt_token');
+let userRole=null;
+if(token)checkAndShow();
+
+async function doLogin(){
+  const email=document.getElementById('login-email').value;
+  const password=document.getElementById('login-password').value;
+  const err=document.getElementById('login-error');
+  err.textContent='';
+  try{
+    const res=await fetch('/api/auth/login',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({email,password})});
+    const data=await res.json();
+    if(!res.ok)return err.textContent=data.error;
+    if(data.role!=='admin')return err.textContent='Admin access required';
+    token=data.token;
+    localStorage.setItem('sgt_token',token);
+    showMain();
+  }catch{err.textContent='Connection error';}
+}
+
+async function checkAndShow(){
+  try{
+    const res=await fetch('/api/events',{headers:{Authorization:`Bearer ${token}`}});
+    if(res.status===401)return logout();
+    showMain();
+  }catch{logout();}
+}
+
+async function showMain(){
+  document.getElementById('login-screen').classList.remove('active');
+  document.getElementById('main-screen').classList.add('active');
+  loadUsers();
+}
+
+async function createUser(){
+  const first=document.getElementById('new-first').value.trim();
+  const last=document.getElementById('new-last').value.trim();
+  const email=document.getElementById('new-email').value.trim();
+  const password=document.getElementById('new-password').value;
+  const role=document.getElementById('new-role').value;
+  const err=document.getElementById('error-msg');
+  const suc=document.getElementById('success-msg');
+  err.textContent='';suc.textContent='';
+
+  if(!first||!last||!email||!password){err.textContent='All fields required';return;}
+  if(password.length<6){err.textContent='Password must be at least 6 characters';return;}
+
+  try{
+    const res=await fetch('/api/auth/register',{
+      method:'POST',
+      headers:{'Content-Type':'application/json','Authorization':`Bearer ${token}`},
+      body:JSON.stringify({email,password,first_name:first,last_name:last,role})
+    });
+    const data=await res.json();
+    if(!res.ok)return err.textContent=data.error||'Failed to create user';
+    suc.textContent=`✓ Account created for ${first} ${last}`;
+    document.getElementById('new-first').value='';
+    document.getElementById('new-last').value='';
+    document.getElementById('new-email').value='';
+    document.getElementById('new-password').value='';
+    loadUsers();
+  }catch{err.textContent='Connection error';}
+}
+
+async function loadUsers(){
+  try{
+    const res=await fetch('/api/auth/users',{headers:{Authorization:`Bearer ${token}`}});
+    if(!res.ok)return;
+    const users=await res.json();
+    const tbody=document.getElementById('users-tbody');
+    tbody.innerHTML='';
+    users.forEach(u=>{
+      const tr=document.createElement('tr');
+      tr.innerHTML=`<td>${u.first_name} ${u.last_name}</td><td style="color:#666;font-size:13px">${u.email}</td><td><span class="badge ${u.role}">${u.role}</span></td><td style="color:#555;font-size:12px">${new Date(u.created_at).toLocaleDateString()}</td>`;
+      tbody.appendChild(tr);
+    });
+    document.getElementById('users-loading').style.display='none';
+    document.getElementById('users-table').style.display='table';
+  }catch{}
+}
+
+function logout(){localStorage.removeItem('sgt_token');location.reload();}
+</script>
+</body>
+</html>

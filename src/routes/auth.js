@@ -4,6 +4,6 @@ const { login, register } = require('../controllers/authController');
 const { requireAuth, requireRole } = require('../middleware/auth');
 
 router.post('/login', login);
-router.post('/register', requireAuth, requireRole('admin'), register);
+router.post('/register', register);
 
 module.exports = router;

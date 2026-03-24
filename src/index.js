@@ -13,8 +13,12 @@ app.use('/api/orders', require('./routes/orders'));
 app.use('/api/tickets', require('./routes/tickets'));
 app.use('/wallet', require('./routes/wallet'));
 
-app.get('/checkin', (req, res) => res.sendFile(path.join(__dirname, 'views/checkin.html')));
-app.get('/doorlist', (req, res) => res.sendFile(path.join(__dirname, 'views/doorlist.html')));
+app.get('/checkin', (req, res) => {
+  res.sendFile(path.resolve(__dirname, 'views', 'checkin.html'));
+});
+app.get('/doorlist', (req, res) => {
+  res.sendFile(path.resolve(__dirname, 'views', 'doorlist.html'));
+});
 
 app.use(require('./middleware/errorHandler'));
 

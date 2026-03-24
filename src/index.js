@@ -16,6 +16,7 @@ app.use('/wallet', require('./routes/wallet'));
 app.get('/checkin', (req, res) => res.sendFile(path.resolve(__dirname, 'views', 'checkin.html')));
 app.get('/doorlist', (req, res) => res.sendFile(path.resolve(__dirname, 'views', 'doorlist.html')));
 app.get('/admin', (req, res) => res.sendFile(path.resolve(__dirname, 'views', 'admin.html')));
+app.get('/tickets', (req, res) => res.sendFile(path.resolve(__dirname, 'views', 'tickets.html')));
 
 app.use(require('./middleware/errorHandler'));
 

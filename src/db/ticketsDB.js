@@ -29,3 +29,23 @@ async function checkInTicket(ticket_id) {
 }
 
 module.exports = { createTicket, getTicketsByOrder, getTicketsByEvent, checkInTicket };
+
+async function getTicketByQrToken(qr_token) {
+  const result = await pool.query('SELECT * FROM sg_tickets WHERE qr_token = $1', [qr_token]);
+  return result.rows[0];
+}
+
+async function checkInTicketByScan(qr_token, checked_in_by) {
+  const result = await pool.query(
+    `UPDATE sg_tickets 
+     SET checkin_status='checked_in', checkin_at=NOW(), updated_at=NOW(),
+         checkin_method='scan', checked_in_by=$2
+     WHERE qr_token=$1 AND checkin_status='not_checked_in' 
+     AND ticket_status='valid'
+     RETURNING *`,
+    [qr_token, checked_in_by]
+  );
+  return result.rows[0];
+}
+
+module.exports = Object.assign(module.exports, { getTicketByQrToken, checkInTicketByScan });

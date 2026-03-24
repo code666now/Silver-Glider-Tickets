@@ -24,7 +24,8 @@ header h1{font-size:16px;font-weight:600;letter-spacing:.1em;color:#888}
 .ticket-status{display:inline-block;font-size:11px;padding:4px 10px;border-radius:20px;font-weight:600;text-transform:uppercase;letter-spacing:.05em}
 .ticket-status.valid{background:#1a2a1a;color:#4caf50;border:1px solid #2a4a2a}
 .ticket-status.checked{background:#1a1a2a;color:#5588ff;border:1px solid #2a2a4a}
-.qr-placeholder{margin-top:16px;background:#161616;border:1px solid #1a1a1a;border-radius:8px;height:120px;display:flex;align-items:center;justify-content:center;color:#333;font-size:12px}
+.qr-wrap{margin-top:16px;background:#fff;border-radius:8px;padding:12px;display:flex;align-items:center;justify-content:center}
+.qr-wrap img{width:100%;max-width:240px;height:auto;display:block}
 .order-info{background:#111;border:1px solid #222;border-radius:12px;padding:16px 20px;margin-bottom:12px}
 .order-row{display:flex;justify-content:space-between;padding:6px 0;font-size:14px;border-bottom:1px solid #161616}
 .order-row:last-child{border-bottom:none}
@@ -87,14 +88,14 @@ function render(data){
   document.getElementById('buyer-name').textContent=`${o.buyer_first_name} ${o.buyer_last_name}`;
   document.getElementById('ticket-count').textContent=o.quantity;
   const list=document.getElementById('tickets-list');
-  data.tickets.forEach((t,i)=>{
+  data.tickets.forEach(t=>{
     const div=document.createElement('div');
     div.className='ticket-card';
     div.innerHTML=`
       <div class="ticket-type">${t.ticket_type}</div>
       <div class="ticket-id">${t.ticket_id}</div>
       <span class="ticket-status ${t.checkin_status==='checked_in'?'checked':'valid'}">${t.checkin_status==='checked_in'?'Checked In':'Valid'}</span>
-      <div class="qr-placeholder">QR Code — Coming Soon</div>
+      <div class="qr-wrap"><img src="${t.qr_image}" alt="QR Code"></div>
     `;
     list.appendChild(div);
   });

@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Your Tickets — Silver Glider</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:#0a0a0a;color:#f0f0f0;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;min-height:100vh;padding-bottom:40px}
+header{background:#111;border-bottom:1px solid #1a1a1a;padding:16px 20px;text-align:center}
+header h1{font-size:16px;font-weight:600;letter-spacing:.1em;color:#888}
+.container{max-width:480px;margin:0 auto;padding:24px 20px}
+#error-screen{display:none;text-align:center;padding:60px 20px;color:#444}
+#loading{text-align:center;padding:60px 20px;color:#444}
+.event-card{background:#111;border:1px solid #222;border-radius:16px;padding:24px;margin-bottom:24px}
+.event-name{font-size:22px;font-weight:700;margin-bottom:8px;line-height:1.2}
+.event-meta{font-size:14px;color:#666;line-height:1.8}
+.event-meta span{display:block}
+.section-label{font-size:11px;color:#444;text-transform:uppercase;letter-spacing:.1em;margin-bottom:12px;margin-top:24px}
+.ticket-card{background:#111;border:1px solid #222;border-radius:12px;padding:20px;margin-bottom:12px;position:relative;overflow:hidden}
+.ticket-card::before{content:'';position:absolute;top:0;left:0;right:0;height:3px;background:linear-gradient(90deg,#333,#555)}
+.ticket-type{font-size:12px;color:#666;text-transform:uppercase;letter-spacing:.08em;margin-bottom:6px}
+.ticket-id{font-family:monospace;font-size:20px;font-weight:700;letter-spacing:.05em;margin-bottom:12px}
+.ticket-status{display:inline-block;font-size:11px;padding:4px 10px;border-radius:20px;font-weight:600;text-transform:uppercase;letter-spacing:.05em}
+.ticket-status.valid{background:#1a2a1a;color:#4caf50;border:1px solid #2a4a2a}
+.ticket-status.checked{background:#1a1a2a;color:#5588ff;border:1px solid #2a2a4a}
+.qr-placeholder{margin-top:16px;background:#161616;border:1px solid #1a1a1a;border-radius:8px;height:120px;display:flex;align-items:center;justify-content:center;color:#333;font-size:12px}
+.order-info{background:#111;border:1px solid #222;border-radius:12px;padding:16px 20px;margin-bottom:12px}
+.order-row{display:flex;justify-content:space-between;padding:6px 0;font-size:14px;border-bottom:1px solid #161616}
+.order-row:last-child{border-bottom:none}
+.order-row .label{color:#555}
+.order-row .value{font-family:monospace;font-size:13px}
+</style>
+</head>
+<body>
+<header><h1>⬡ SILVER GLIDER</h1></header>
+<div class="container">
+<div id="loading">Loading your tickets...</div>
+<div id="error-screen"><p>Invalid or expired ticket link.</p></div>
+<div id="content" style="display:none">
+<div class="event-card">
+<div class="event-name" id="event-name"></div>
+<div class="event-meta">
+<span id="event-date"></span>
+<span id="event-venue"></span>
+</div>
+</div>
+<div class="section-label">Order</div>
+<div class="order-info">
+<div class="order-row"><span class="label">Confirmation</span><span class="value" id="order-number"></span></div>
+<div class="order-row"><span class="label">Name</span><span class="value" id="buyer-name"></span></div>
+<div class="order-row"><span class="label">Tickets</span><span class="value" id="ticket-count"></span></div>
+</div>
+<div class="section-label">Tickets</div>
+<div id="tickets-list"></div>
+</div>
+</div>
+<script>
+async function loadWallet(){
+  const params=new URLSearchParams(window.location.search);
+  const order=params.get('order');
+  const token=params.get('token');
+  if(!order||!token){
+    document.getElementById('loading').style.display='none';
+    document.getElementById('error-screen').style.display='block';
+    return;
+  }
+  try{
+    const res=await fetch(`/wallet/data?order=${order}&token=${token}`);
+    if(!res.ok)throw new Error();
+    const data=await res.json();
+    render(data);
+  }catch{
+    document.getElementById('loading').style.display='none';
+    document.getElementById('error-screen').style.display='block';
+  }
+}
+function render(data){
+  document.getElementById('loading').style.display='none';
+  document.getElementById('content').style.display='block';
+  const e=data.event;
+  const o=data.order;
+  document.getElementById('event-name').textContent=e.name;
+  document.getElementById('event-date').textContent=new Date(e.event_date).toLocaleDateString('en-US',{weekday:'long',year:'numeric',month:'long',day:'numeric',hour:'2-digit',minute:'2-digit'});
+  document.getElementById('event-venue').textContent=e.venue;
+  document.getElementById('order-number').textContent=o.order_number;
+  document.getElementById('buyer-name').textContent=`${o.buyer_first_name} ${o.buyer_last_name}`;
+  document.getElementById('ticket-count').textContent=o.quantity;
+  const list=document.getElementById('tickets-list');
+  data.tickets.forEach((t,i)=>{
+    const div=document.createElement('div');
+    div.className='ticket-card';
+    div.innerHTML=`
+      <div class="ticket-type">${t.ticket_type}</div>
+      <div class="ticket-id">${t.ticket_id}</div>
+      <span class="ticket-status ${t.checkin_status==='checked_in'?'checked':'valid'}">${t.checkin_status==='checked_in'?'Checked In':'Valid'}</span>
+      <div class="qr-placeholder">QR Code — Coming Soon</div>
+    `;
+    list.appendChild(div);
+  });
+}
+loadWallet();
+</script>
+</body>
+</html>

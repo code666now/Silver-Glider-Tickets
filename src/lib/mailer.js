@@ -1,6 +1,6 @@
 const { Resend } = require('resend');
 
-const resend = new Resend(process.env.RESEND_API_KEY);
+const resend = process.env.RESEND_API_KEY ? new Resend(process.env.RESEND_API_KEY) : null;
 
 async function sendOrderConfirmation({ to, buyer_first_name, event, order, tickets }) {
   const walletUrl = `${process.env.APP_URL}/wallet?order=${order.order_number}&token=${order.secure_token}`;

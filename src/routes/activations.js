@@ -347,10 +347,8 @@ textarea{resize:vertical;min-height:80px}
     <label>Your email (optional)</label>
     <input type="email" id="contact-email" placeholder="you@example.com">
 
-    <label>Your phone (optional)</label>
-    <input type="tel" id="contact-phone" placeholder="+1 (555) 000-0000">
 
-    <div class="progress" id="progress-bar-wrap">
+<div class="progress" id="progress-bar-wrap">
       <div class="progress-bar" id="progress-bar"></div>
     </div>
 

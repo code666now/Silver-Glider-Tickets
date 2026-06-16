@@ -529,9 +529,9 @@ footer{text-align:center;padding:32px;font-size:12px;color:#333}
       </div>
     </div>
     <div id="instagram-follow" style="margin-top:20px;text-align:center">
-      <a href="https://instagram.com/silverglidertickets" target="_blank" rel="noopener noreferrer" style="display:inline-flex;align-items:center;gap:8px;color:#555;font-size:13px;text-decoration:none;border:1px solid #222;border-radius:8px;padding:10px 16px;transition:border-color .2s" onmouseover="this.style.borderColor='#444'" onmouseout="this.style.borderColor='#222'">
+      <a href="https://instagram.com/silverglidertix" target="_blank" rel="noopener noreferrer" style="display:inline-flex;align-items:center;gap:8px;color:#555;font-size:13px;text-decoration:none;border:1px solid #222;border-radius:8px;padding:10px 16px;transition:border-color .2s" onmouseover="this.style.borderColor='#444'" onmouseout="this.style.borderColor='#222'">
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="2" width="20" height="20" rx="5" ry="5"/><circle cx="12" cy="12" r="4"/><circle cx="17.5" cy="6.5" r="1.5" fill="currentColor" stroke="none"/></svg>
-        @silverglidertickets
+        @silverglidertix
       </a>
     </div>
   </div>

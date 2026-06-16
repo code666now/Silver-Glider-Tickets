@@ -16,79 +16,6 @@ router.post('/admin/login', async (req, res) => {
   res.json({ token });
 });
 
-router.get('/:activationSlug/join', async (req, res) => {
-  const activation = await db.getActivationBySlug(req.params.activationSlug);
-  if (!activation || !activation.active) return res.status(404).send('Not found');
-  res.send(renderSignupPage(activation));
-});
-
-router.post('/:activationSlug/join', upload.single('image'), async (req, res) => {
-  try {
-    const activation = await db.getActivationBySlug(req.params.activationSlug);
-    if (!activation || !activation.active) return res.status(404).json({ error: 'Not found' });
-    const { name, description, contact_email, contact_phone } = req.body;
-    if (!name) return res.status(400).json({ error: 'Name required' });
-    let image_url = null;
-    if (req.file) {
-      const result = await uploadImage(req.file.buffer);
-      image_url = result.secure_url;
-    }
-    const slug = name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
-    const participant = await db.createParticipant({
-      activation_id: activation.id, name, slug, description, image_url,
-      status: 'pending', contact_email, contact_phone
-    });
-    res.json({ success: true, participant });
-  } catch (err) {
-    res.status(500).json({ error: err.message });
-  }
-});
-
-router.get('/:activationSlug', async (req, res) => {
-  const activation = await db.getActivationBySlug(req.params.activationSlug);
-  if (!activation || !activation.active) return res.status(404).send('Not found');
-  const participants = await db.getParticipantsByActivation(activation.id);
-  res.send(renderActivationLanding(activation, participants));
-});
-
-router.get('/:activationSlug/:participantSlug', async (req, res) => {
-  const activation = await db.getActivationBySlug(req.params.activationSlug);
-  if (!activation || !activation.active) return res.status(404).send('Not found');
-  const participant = await db.getParticipantBySlug(activation.id, req.params.participantSlug);
-  if (!participant) return res.status(404).send('Not found');
-  res.send(renderVotingPage(activation, participant));
-});
-
-router.post('/:activationSlug/:participantSlug/vote', async (req, res) => {
-  try {
-    const activation = await db.getActivationBySlug(req.params.activationSlug);
-    if (!activation) return res.status(404).json({ error: 'Not found' });
-    const participant = await db.getParticipantBySlug(activation.id, req.params.participantSlug);
-    if (!participant) return res.status(404).json({ error: 'Not found' });
-    const { vote, fingerprint } = req.body;
-    if (!['rules', 'hell_yeah', 'no_thanks'].includes(vote)) return res.status(400).json({ error: 'Invalid vote' });
-    const result = await db.castVote({ participant_id: participant.id, activation_id: activation.id, vote, browser_fingerprint: fingerprint });
-    res.json(result);
-  } catch (err) {
-    res.status(500).json({ error: err.message });
-  }
-});
-
-router.post('/:activationSlug/:participantSlug/optin', async (req, res) => {
-  try {
-    const activation = await db.getActivationBySlug(req.params.activationSlug);
-    if (!activation) return res.status(404).json({ error: 'Not found' });
-    const participant = await db.getParticipantBySlug(activation.id, req.params.participantSlug);
-    if (!participant) return res.status(404).json({ error: 'Not found' });
-    const { phone } = req.body;
-    if (!phone) return res.status(400).json({ error: 'Phone required' });
-    const optin = await db.createOptin({ activation_id: activation.id, participant_id: participant.id, phone });
-    res.json({ success: true, optin });
-  } catch (err) {
-    res.status(500).json({ error: err.message });
-  }
-});
-
 router.get('/admin/activations', (req, res) => {
   res.sendFile(path.resolve(__dirname, '../views/activations-admin.html'));
 });
@@ -177,6 +104,79 @@ router.get('/admin/activations/:id/participants', requireActivationsAdmin, async
   try {
     const participants = await db.getParticipantsByActivation(req.params.id);
     res.json(participants);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+router.get('/:activationSlug/join', async (req, res) => {
+  const activation = await db.getActivationBySlug(req.params.activationSlug);
+  if (!activation || !activation.active) return res.status(404).send('Not found');
+  res.send(renderSignupPage(activation));
+});
+
+router.post('/:activationSlug/join', upload.single('image'), async (req, res) => {
+  try {
+    const activation = await db.getActivationBySlug(req.params.activationSlug);
+    if (!activation || !activation.active) return res.status(404).json({ error: 'Not found' });
+    const { name, description, contact_email, contact_phone } = req.body;
+    if (!name) return res.status(400).json({ error: 'Name required' });
+    let image_url = null;
+    if (req.file) {
+      const result = await uploadImage(req.file.buffer);
+      image_url = result.secure_url;
+    }
+    const slug = name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
+    const participant = await db.createParticipant({
+      activation_id: activation.id, name, slug, description, image_url,
+      status: 'pending', contact_email, contact_phone
+    });
+    res.json({ success: true, participant });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+router.get('/:activationSlug', async (req, res) => {
+  const activation = await db.getActivationBySlug(req.params.activationSlug);
+  if (!activation || !activation.active) return res.status(404).send('Not found');
+  const participants = await db.getParticipantsByActivation(activation.id);
+  res.send(renderActivationLanding(activation, participants));
+});
+
+router.get('/:activationSlug/:participantSlug', async (req, res) => {
+  const activation = await db.getActivationBySlug(req.params.activationSlug);
+  if (!activation || !activation.active) return res.status(404).send('Not found');
+  const participant = await db.getParticipantBySlug(activation.id, req.params.participantSlug);
+  if (!participant) return res.status(404).send('Not found');
+  res.send(renderVotingPage(activation, participant));
+});
+
+router.post('/:activationSlug/:participantSlug/vote', async (req, res) => {
+  try {
+    const activation = await db.getActivationBySlug(req.params.activationSlug);
+    if (!activation) return res.status(404).json({ error: 'Not found' });
+    const participant = await db.getParticipantBySlug(activation.id, req.params.participantSlug);
+    if (!participant) return res.status(404).json({ error: 'Not found' });
+    const { vote, fingerprint } = req.body;
+    if (!['rules', 'hell_yeah', 'no_thanks'].includes(vote)) return res.status(400).json({ error: 'Invalid vote' });
+    const result = await db.castVote({ participant_id: participant.id, activation_id: activation.id, vote, browser_fingerprint: fingerprint });
+    res.json(result);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+router.post('/:activationSlug/:participantSlug/optin', async (req, res) => {
+  try {
+    const activation = await db.getActivationBySlug(req.params.activationSlug);
+    if (!activation) return res.status(404).json({ error: 'Not found' });
+    const participant = await db.getParticipantBySlug(activation.id, req.params.participantSlug);
+    if (!participant) return res.status(404).json({ error: 'Not found' });
+    const { phone } = req.body;
+    if (!phone) return res.status(400).json({ error: 'Phone required' });
+    const optin = await db.createOptin({ activation_id: activation.id, participant_id: participant.id, phone });
+    res.json({ success: true, optin });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }

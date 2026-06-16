@@ -129,24 +129,15 @@ tbody td{padding:10px 12px;border-bottom:1px solid #161616}
 
     <div id="tab-results" style="display:none">
       <div class="card">
-        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px">
-          <p class="section-title" style="margin:0">Vote Results</p>
-          <button class="btn-sm" onclick="exportCSV()">Export CSV</button>
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px">
+          <p class="section-title" style="margin:0">Live Leaderboard</p>
+          <div style="display:flex;align-items:center;gap:10px">
+            <span id="refresh-indicator" style="font-size:11px;color:#444">Auto-refreshing</span>
+            <button class="btn-sm" onclick="exportCSV()">Export CSV</button>
+          </div>
         </div>
-        <table>
-          <thead>
-            <tr>
-              <th>Participant</th>
-              <th>🔥 Rules</th>
-              <th>🤘 Hell Yeah</th>
-              <th>👎 No Thanks</th>
-              <th>Total</th>
-            </tr>
-          </thead>
-          <tbody id="results-tbody">
-            <tr><td colspan="5" style="color:#444;padding:20px">Loading...</td></tr>
-          </tbody>
-        </table>
+        <p style="font-size:11px;color:#333;margin-bottom:20px">Updates every 30 seconds</p>
+        <div id="results-leaderboard"></div>
       </div>
     </div>
 
@@ -271,7 +262,7 @@ function showTab(tab) {
   document.querySelectorAll('.tab').forEach((el, i) => {
     el.classList.toggle('active', ['participants','pending','results','optins'][i] === tab);
   });
-  if (tab === 'results') loadResults();
+  if (tab === 'results') { loadResults(); startResultsRefresh(); } else { stopResultsRefresh(); }
   if (tab === 'optins') loadOptins();
   if (tab === 'pending') loadPending();
 }
@@ -387,23 +378,63 @@ async function addParticipant() {
   loadParticipants();
 }
 
+let resultsRefreshTimer = null;
+
 async function loadResults() {
   const data = await api(`/activations/admin/activations/${currentActivation.id}/results`);
   currentResults = data.results || [];
-  const tbody = document.getElementById('results-tbody');
+  const el = document.getElementById('results-leaderboard');
   if (!currentResults.length) {
-    tbody.innerHTML = '<tr><td colspan="5" style="color:#444;padding:20px">No votes yet.</td></tr>';
+    el.innerHTML = '<p style="color:#444;font-size:14px;padding:12px 0">No votes yet.</p>';
     return;
   }
-  tbody.innerHTML = currentResults.map(r => `
-    <tr>
-      <td style="font-weight:600">${r.name}</td>
-      <td>${r.rules}</td>
-      <td>${r.hell_yeah}</td>
-      <td>${r.no_thanks}</td>
-      <td class="score">${r.total}</td>
-    </tr>
-  `).join('');
+
+  const sorted = [...currentResults].sort((a, b) => b.total - a.total);
+  const maxTotal = sorted[0].total || 1;
+
+  const medals = ['🏆', '🥈', '🥉'];
+
+  el.innerHTML = sorted.map((r, i) => {
+    const rulesP = maxTotal ? Math.round((r.rules / maxTotal) * 100) : 0;
+    const hellP  = maxTotal ? Math.round((r.hell_yeah / maxTotal) * 100) : 0;
+    const noP    = maxTotal ? Math.round((r.no_thanks / maxTotal) * 100) : 0;
+    const medal  = i < 3 ? medals[i] : `#${i + 1}`;
+    return `
+    <div style="padding:16px 0;border-bottom:1px solid #1a1a1a">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
+        <div style="display:flex;align-items:center;gap:10px">
+          <span style="font-size:18px;min-width:28px">${medal}</span>
+          <span style="font-size:15px;font-weight:700">${r.name}</span>
+        </div>
+        <span style="font-size:18px;font-weight:700;color:#1CC5BE">${r.total}</span>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:6px">
+        <div>
+          <div style="display:flex;justify-content:space-between;font-size:11px;color:#555;margin-bottom:3px"><span>🔥 This Booth Rules</span><span>${r.rules}</span></div>
+          <div style="background:#1a1a1a;border-radius:4px;height:6px"><div style="background:#1CC5BE;height:6px;border-radius:4px;width:${rulesP}%;transition:width .4s"></div></div>
+        </div>
+        <div>
+          <div style="display:flex;justify-content:space-between;font-size:11px;color:#555;margin-bottom:3px"><span>🤘 Hell Yeah</span><span>${r.hell_yeah}</span></div>
+          <div style="background:#1a1a1a;border-radius:4px;height:6px"><div style="background:#555;height:6px;border-radius:4px;width:${hellP}%;transition:width .4s"></div></div>
+        </div>
+        <div>
+          <div style="display:flex;justify-content:space-between;font-size:11px;color:#555;margin-bottom:3px"><span>😬 Not My Vibe</span><span>${r.no_thanks}</span></div>
+          <div style="background:#1a1a1a;border-radius:4px;height:6px"><div style="background:#333;height:6px;border-radius:4px;width:${noP}%;transition:width .4s"></div></div>
+        </div>
+      </div>
+    </div>`;
+  }).join('');
+
+  document.getElementById('refresh-indicator').textContent = `Updated ${new Date().toLocaleTimeString([], {hour:'2-digit',minute:'2-digit'})}`;
+}
+
+function startResultsRefresh() {
+  stopResultsRefresh();
+  resultsRefreshTimer = setInterval(loadResults, 30000);
+}
+
+function stopResultsRefresh() {
+  if (resultsRefreshTimer) { clearInterval(resultsRefreshTimer); resultsRefreshTimer = null; }
 }
 
 async function loadOptins() {

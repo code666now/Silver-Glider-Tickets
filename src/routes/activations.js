@@ -75,7 +75,7 @@ router.post('/admin/upload-image', requireActivationsAdmin, upload.single('image
 
 router.post('/admin/activations/:id/participants', requireActivationsAdmin, upload.single('image'), async (req, res) => {
   try {
-    let { name, slug, description, image_url } = req.body;
+    let { name, slug, description, image_url, instagram_handle } = req.body;
     if (req.file) {
       const uploaded = await uploadImage(req.file.buffer);
       image_url = uploaded.secure_url;
@@ -83,7 +83,7 @@ router.post('/admin/activations/:id/participants', requireActivationsAdmin, uplo
     const participant = await db.createParticipant({
       activation_id: req.params.id,
       name, slug: slug.toLowerCase().replace(/\s+/g, '-'),
-      description, image_url
+      description, image_url, instagram_handle
     });
     res.json(participant);
   } catch (err) {
@@ -93,12 +93,12 @@ router.post('/admin/activations/:id/participants', requireActivationsAdmin, uplo
 
 router.put('/admin/activations/participants/:id', requireActivationsAdmin, upload.single('image'), async (req, res) => {
   try {
-    let { name, slug, description, image_url } = req.body;
+    let { name, slug, description, image_url, instagram_handle } = req.body;
     if (req.file) {
       const uploaded = await uploadImage(req.file.buffer);
       image_url = uploaded.secure_url;
     }
-    const participant = await db.updateParticipant(req.params.id, { name, slug, description, image_url });
+    const participant = await db.updateParticipant(req.params.id, { name, slug, description, image_url, instagram_handle });
     res.json(participant);
   } catch (err) {
     res.status(500).json({ error: err.message });
@@ -161,7 +161,7 @@ router.post('/:activationSlug/join', upload.single('image'), async (req, res) =>
   try {
     const activation = await db.getActivationBySlug(req.params.activationSlug);
     if (!activation || !activation.active) return res.status(404).json({ error: 'Not found' });
-    const { name, description, contact_email, contact_phone } = req.body;
+    const { name, description, contact_email, contact_phone, instagram_handle } = req.body;
     if (!name) return res.status(400).json({ error: 'Name required' });
     let image_url = null;
     if (req.file) {
@@ -171,7 +171,7 @@ router.post('/:activationSlug/join', upload.single('image'), async (req, res) =>
     const slug = name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
     const participant = await db.createParticipant({
       activation_id: activation.id, name, slug, description, image_url,
-      status: 'pending', contact_email, contact_phone
+      status: 'pending', contact_email, contact_phone, instagram_handle
     });
     res.json({ success: true, participant });
   } catch (err) {
@@ -341,6 +341,9 @@ textarea{resize:vertical;min-height:80px}
     </div>
     <input type="file" id="image-file" accept="image/*" style="display:none">
 
+    <label>Instagram handle (optional)</label>
+    <input type="text" id="instagram-handle" placeholder="@yourbooth">
+
     <label>Your email (optional)</label>
     <input type="email" id="contact-email" placeholder="you@example.com">
 
@@ -390,6 +393,7 @@ async function submitForm() {
   const description = document.getElementById('description').value.trim();
   const contactEmail = document.getElementById('contact-email').value.trim();
   const contactPhone = document.getElementById('contact-phone').value.trim();
+  const instagramHandle = document.getElementById('instagram-handle').value.trim().replace(/^@/, '');
   const imageFile = document.getElementById('image-file').files[0];
   const errEl = document.getElementById('error-msg');
   const btn = document.getElementById('submit-btn');
@@ -407,6 +411,7 @@ async function submitForm() {
   formData.append('description', description);
   formData.append('contact_email', contactEmail);
   formData.append('contact_phone', contactPhone);
+  if (instagramHandle) formData.append('instagram_handle', instagramHandle);
   if (selectedFile) formData.append('image', selectedFile);
 
   document.getElementById('progress-bar').style.width = '70%';
@@ -579,6 +584,10 @@ footer span{color:#333}
   <div class="hero-overlay">
     <h1>${participant.name}</h1>
     ${participant.description ? `<p class="desc">${participant.description}</p>` : ''}
+    ${participant.instagram_handle ? `<a href="https://instagram.com/${participant.instagram_handle}" target="_blank" rel="noopener noreferrer" style="display:inline-flex;align-items:center;gap:5px;color:rgba(255,255,255,.5);text-decoration:none;font-size:12px;margin-top:8px">
+      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="2" width="20" height="20" rx="5" ry="5"/><circle cx="12" cy="12" r="4"/><circle cx="17.5" cy="6.5" r="1.5" fill="currentColor" stroke="none"/></svg>
+      @${participant.instagram_handle}
+    </a>` : ''}
   </div>
 </div>
 

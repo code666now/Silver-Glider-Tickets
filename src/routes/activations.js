@@ -457,8 +457,10 @@ function renderVotingPage(activation, participant) {
 <title>${participant.name} — ${activation.name}</title>
 <style>
 *{box-sizing:border-box;margin:0;padding:0}
-body{background:#0a0a0a;color:#f0f0f0;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;min-height:100vh}
-header{padding:16px 24px;border-bottom:1px solid #1a1a1a;display:flex;align-items:center;gap:12px}
+body{color:#f0f0f0;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;min-height:100vh;background:#0a0a0a url('/voting-bg.jpg') center/cover fixed}
+body::before{content:'';position:fixed;inset:0;background:rgba(0,0,0,.82);z-index:0}
+header,.container,footer{position:relative;z-index:1}
+header{padding:16px 24px;border-bottom:1px solid rgba(255,255,255,.08);display:flex;align-items:center;gap:12px}
 header a{color:#555;text-decoration:none;font-size:13px}
 header span{color:#333}
 .container{max-width:480px;margin:0 auto;padding:32px 24px;text-align:center}

@@ -571,11 +571,11 @@ footer span{color:#333}
 </div>
 
 <footer>
-  <a href="https://instagram.com/silverglidertix" target="_blank" rel="noopener noreferrer" style="display:inline-flex;align-items:center;gap:6px;color:#1CC5BE;text-decoration:none;font-weight:600">
-    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="2" width="20" height="20" rx="5" ry="5"/><circle cx="12" cy="12" r="4"/><circle cx="17.5" cy="6.5" r="1.5" fill="currentColor" stroke="none"/></svg>
+  <a href="https://instagram.com/silverglidertix" target="_blank" rel="noopener noreferrer" style="display:inline-flex;align-items:center;gap:7px;color:#1CC5BE;text-decoration:none;font-weight:600;font-size:14px">
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="2" width="20" height="20" rx="5" ry="5"/><circle cx="12" cy="12" r="4"/><circle cx="17.5" cy="6.5" r="1.5" fill="currentColor" stroke="none"/></svg>
     @silverglidertix
   </a>
-  <span> &nbsp;·&nbsp; Powered by Silver Glider</span>
+  <div style="margin-top:8px;color:#2a2a2a;font-size:11px">Powered by Silver Glider</div>
 </footer>
 <script>
 function getFingerprint() {

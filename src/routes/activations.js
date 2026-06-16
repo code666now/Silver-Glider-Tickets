@@ -738,7 +738,7 @@ h1{font-size:15px;font-weight:600;color:#666;text-align:center;margin-bottom:32p
 .vote-count{font-size:13px;color:#1CC5BE;font-weight:600}
 .share-btn{display:inline-flex;align-items:center;gap:8px;background:#1CC5BE;color:#0a0a0a;border:none;padding:14px 32px;border-radius:12px;font-size:15px;font-weight:700;cursor:pointer;width:100%;justify-content:center;margin-top:20px;-webkit-appearance:none}
 .share-btn:active{opacity:.85}
-footer{font-size:11px;color:#2a2a2a;padding:20px;text-align:center}
+footer{font-size:12px;color:#888;padding:20px;text-align:center;font-weight:500}
 </style>
 </head>
 <body>

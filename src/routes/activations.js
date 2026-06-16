@@ -8,6 +8,29 @@ const multer = require('multer');
 const { uploadImage } = require('../lib/cloudinary');
 const upload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 10 * 1024 * 1024 } });
 
+// Simple in-memory rate limiter: max 30 votes per IP per 10 minutes
+const voteRateLimit = (() => {
+  const counts = new Map();
+  const WINDOW_MS = 10 * 60 * 1000;
+  const MAX = 30;
+  setInterval(() => {
+    const now = Date.now();
+    for (const [key, entry] of counts) {
+      if (now - entry.start > WINDOW_MS) counts.delete(key);
+    }
+  }, 60 * 1000);
+  return (req, res, next) => {
+    const ip = req.headers['x-forwarded-for']?.split(',')[0]?.trim() || req.socket.remoteAddress;
+    const now = Date.now();
+    const entry = counts.get(ip) || { count: 0, start: now };
+    if (now - entry.start > WINDOW_MS) { entry.count = 0; entry.start = now; }
+    entry.count++;
+    counts.set(ip, entry);
+    if (entry.count > MAX) return res.status(429).json({ error: 'Too many votes. Try again later.' });
+    next();
+  };
+})();
+
 router.post('/admin/login', async (req, res) => {
   const { password } = req.body;
   const correct = process.env.ACTIVATIONS_ADMIN_PASS || 'activations2026';
@@ -190,7 +213,7 @@ router.get('/:activationSlug/:participantSlug', async (req, res) => {
   res.send(renderVotingPage(activation, participant));
 });
 
-router.post('/:activationSlug/:participantSlug/vote', async (req, res) => {
+router.post('/:activationSlug/:participantSlug/vote', voteRateLimit, async (req, res) => {
   try {
     const activation = await db.getActivationBySlug(req.params.activationSlug);
     if (!activation) return res.status(404).json({ error: 'Not found' });

@@ -367,13 +367,19 @@ async function submitForm() {
 
 function renderActivationLanding(activation, participants) {
   const cards = participants.map(p => `
-    <a href="/activations/${activation.slug}/${p.slug}" class="participant-card">
-      ${p.image_url ? `<img src="${p.image_url}" alt="${p.name}">` : `<div class="placeholder-img">${p.name[0]}</div>`}
-      <div class="participant-info">
-        <h3>${p.name}</h3>
-        ${p.description ? `<p>${p.description}</p>` : ''}
+    <a href="/activations/${activation.slug}/${p.slug}" class="booth-card">
+      ${p.image_url
+        ? `<div class="booth-img" style="background-image:url('${p.image_url}')"></div>`
+        : `<div class="booth-img booth-img-placeholder"><span>${p.name[0]}</span></div>`}
+      <div class="booth-body">
+        <div class="booth-meta">
+          <h3>${p.name}</h3>
+          ${p.description ? `<p>${p.description}</p>` : ''}
+        </div>
+        <div class="vote-btn-wrap">
+          <span class="vote-btn">Vote</span>
+        </div>
       </div>
-      <span class="vote-cta">Vote &rarr;</span>
     </a>
   `).join('');
 
@@ -386,37 +392,58 @@ function renderActivationLanding(activation, participants) {
 <style>
 *{box-sizing:border-box;margin:0;padding:0}
 body{background:#0a0a0a;color:#f0f0f0;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;min-height:100vh}
-header{padding:24px;text-align:center;border-bottom:1px solid #1a1a1a}
-header p{font-size:12px;letter-spacing:.15em;color:#555;margin-bottom:8px}
-header h1{font-size:28px;font-weight:700}
-header .desc{font-size:15px;color:#666;margin-top:8px}
-.container{max-width:600px;margin:0 auto;padding:24px}
-.participant-card{display:flex;align-items:center;gap:16px;background:#111;border:1px solid #222;border-radius:12px;padding:16px;margin-bottom:12px;text-decoration:none;color:inherit;transition:border-color .2s}
-.participant-card:hover{border-color:#444}
-.participant-card img,.placeholder-img{width:64px;height:64px;border-radius:10px;object-fit:cover;flex-shrink:0}
-.placeholder-img{background:#1a1a1a;display:flex;align-items:center;justify-content:center;font-size:24px;font-weight:700;color:#444}
-.participant-info{flex:1}
-.participant-info h3{font-size:16px;font-weight:600;margin-bottom:4px}
-.participant-info p{font-size:13px;color:#666}
-.vote-cta{font-size:13px;color:#555;flex-shrink:0}
-footer{text-align:center;padding:32px;font-size:12px;color:#333}
+header{padding:20px 16px 16px;text-align:center;border-bottom:1px solid #1a1a1a}
+header h1{font-size:26px;font-weight:800;margin-top:12px;letter-spacing:-.02em}
+header .tagline{font-size:13px;color:#555;margin-top:6px}
+.sg-logo{display:inline-flex;align-items:center;gap:10px;background:#161616;border:1px solid #2a2a2a;border-radius:40px;padding:8px 18px 8px 10px;text-decoration:none}
+.sg-logo img{width:28px;height:28px;object-fit:contain}
+.sg-logo-name{display:block;font-size:13px;font-weight:700;color:#fff;letter-spacing:.08em;text-transform:uppercase}
+.sg-logo-sub{display:block;font-size:9px;color:#1CC5BE;letter-spacing:.15em;text-transform:uppercase}
+.stats-bar{display:flex;align-items:center;justify-content:center;gap:6px;margin-top:10px;font-size:12px;color:#555}
+.stats-bar span{color:#1CC5BE;font-weight:700}
+.prize-card{margin:16px 16px 0;background:#111;border:1px solid #1a1a1a;border-radius:14px;padding:16px 20px}
+.prize-label{font-size:11px;color:#1CC5BE;font-weight:700;letter-spacing:.1em;text-transform:uppercase;margin-bottom:12px}
+.prize-row{display:flex;align-items:center;gap:12px;padding:6px 0;font-size:14px}
+.prize-row:not(:last-child){border-bottom:1px solid #1a1a1a}
+.prize-venue{color:#f0f0f0;font-weight:600}
+.prize-desc{color:#555;font-size:12px}
+.container{max-width:600px;margin:0 auto;padding:16px}
+.booth-card{display:block;background:#111;border:1px solid #1a1a1a;border-radius:16px;margin-bottom:14px;text-decoration:none;color:inherit;overflow:hidden;transition:border-color .2s,transform .1s}
+.booth-card:active{transform:scale(.98)}
+.booth-img{width:100%;height:200px;background-size:cover;background-position:center;background-color:#1a1a1a}
+.booth-img-placeholder{display:flex;align-items:center;justify-content:center}
+.booth-img-placeholder span{font-size:64px;font-weight:800;color:#333}
+.booth-body{display:flex;align-items:center;justify-content:space-between;padding:14px 16px;gap:12px}
+.booth-meta h3{font-size:17px;font-weight:700;margin-bottom:3px}
+.booth-meta p{font-size:13px;color:#666;line-height:1.4}
+.vote-btn-wrap{flex-shrink:0}
+.vote-btn{display:inline-block;background:#1CC5BE;color:#0a0a0a;font-size:14px;font-weight:700;padding:10px 20px;border-radius:8px;white-space:nowrap}
+.empty{color:#444;text-align:center;padding:60px 0;font-size:15px}
+footer{text-align:center;padding:32px;font-size:12px;color:#333;border-top:1px solid #1a1a1a;margin-top:8px}
+@media(max-width:480px){
+  .booth-img{height:180px}
+  header h1{font-size:22px}
+}
 </style>
 </head>
 <body>
 <header>
-  <div style="display:flex;justify-content:center;margin-bottom:16px"><a href="/" style="display:inline-flex;align-items:center;gap:10px;background:#161616;border:1px solid #2a2a2a;border-radius:40px;padding:8px 18px 8px 10px;text-decoration:none"><img src="/logo.png" alt="Silver Glider" style="width:28px;height:28px;object-fit:contain"><div><span style="display:block;font-size:13px;font-weight:700;color:#fff;letter-spacing:.08em;text-transform:uppercase">Silver Glider</span><span style="display:block;font-size:9px;color:#666;letter-spacing:.15em;text-transform:uppercase">Tickets</span></div></a></div>
+  <a href="/" class="sg-logo"><img src="/logo.png" alt="Silver Glider"><div class="sg-logo-text"><span class="sg-logo-name">Silver Glider</span><span class="sg-logo-sub">Music Discovery</span></div></a>
   <h1>${activation.name}</h1>
-  ${activation.description ? `<p class="desc">${activation.description}</p>` : ''}
+  <div class="stats-bar"><span>${participants.length}</span> booth${participants.length !== 1 ? 's' : ''} competing — tap one to vote</div>
 </header>
-<div class="container">
-  <div style="background:#111;border:1px solid #1a1a1a;border-radius:12px;padding:16px 20px;margin-bottom:20px">
-    <p style="font-size:12px;color:#1CC5BE;font-weight:700;letter-spacing:.08em;text-transform:uppercase;margin-bottom:8px">Prizes</p>
-    <p style="font-size:13px;color:#aaa;line-height:1.6">🥇 1st — 2 tickets to <strong style="color:#f0f0f0">The Fox Theatre</strong> &nbsp; 🥈 2nd — <strong style="color:#f0f0f0">The Independent</strong> &nbsp; 🥉 3rd — <strong style="color:#f0f0f0">The Make Out Room</strong></p>
-    <p style="font-size:12px;color:#444;margin-top:8px">Tap a booth and vote. Most votes wins. Powered by Silver Glider music discovery.</p>
-  </div>
-  ${cards || '<p style="color:#444;text-align:center;padding:40px 0">No participants yet.</p>'}
+
+<div class="prize-card">
+  <p class="prize-label">Best Booth Award — Prizes</p>
+  <div class="prize-row"><span>🥇</span><div><div class="prize-venue">The Fox Theatre</div><div class="prize-desc">1st place — 2 concert tickets</div></div></div>
+  <div class="prize-row"><span>🥈</span><div><div class="prize-venue">The Independent</div><div class="prize-desc">2nd place — 2 concert tickets</div></div></div>
+  <div class="prize-row"><span>🥉</span><div><div class="prize-venue">The Make Out Room</div><div class="prize-desc">3rd place — 2 concert tickets</div></div></div>
 </div>
-<footer>Silver Glider</footer>
+
+<div class="container">
+  ${cards || '<p class="empty">No booths yet.</p>'}
+</div>
+<footer>Powered by Silver Glider music discovery</footer>
 </body>
 </html>`;
 }

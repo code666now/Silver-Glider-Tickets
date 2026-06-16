@@ -3,6 +3,37 @@ const router = express.Router();
 const db = require('../db/activationsDB');
 const { requireAuth, requireRole } = require('../middleware/auth');
 const path = require('path');
+const multer = require('multer');
+const { uploadImage } = require('../lib/cloudinary');
+const upload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 10 * 1024 * 1024 } });
+
+router.get('/:activationSlug/join', async (req, res) => {
+  const activation = await db.getActivationBySlug(req.params.activationSlug);
+  if (!activation || !activation.active) return res.status(404).send('Not found');
+  res.send(renderSignupPage(activation));
+});
+
+router.post('/:activationSlug/join', upload.single('image'), async (req, res) => {
+  try {
+    const activation = await db.getActivationBySlug(req.params.activationSlug);
+    if (!activation || !activation.active) return res.status(404).json({ error: 'Not found' });
+    const { name, description, contact_email, contact_phone } = req.body;
+    if (!name) return res.status(400).json({ error: 'Name required' });
+    let image_url = null;
+    if (req.file) {
+      const result = await uploadImage(req.file.buffer);
+      image_url = result.secure_url;
+    }
+    const slug = name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
+    const participant = await db.createParticipant({
+      activation_id: activation.id, name, slug, description, image_url,
+      status: 'pending', contact_email, contact_phone
+    });
+    res.json({ success: true, participant });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
 
 router.get('/:activationSlug', async (req, res) => {
   const activation = await db.getActivationBySlug(req.params.activationSlug);
@@ -96,6 +127,33 @@ router.put('/admin/activations/participants/:id', requireAuth, requireRole('admi
   }
 });
 
+router.get('/admin/activations/:id/pending', requireAuth, requireRole('admin'), async (req, res) => {
+  try {
+    const pending = await db.getPendingParticipants(req.params.id);
+    res.json(pending);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+router.post('/admin/activations/participants/:id/approve', requireAuth, requireRole('admin'), async (req, res) => {
+  try {
+    const participant = await db.approveParticipant(req.params.id);
+    res.json(participant);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+router.post('/admin/activations/participants/:id/reject', requireAuth, requireRole('admin'), async (req, res) => {
+  try {
+    const participant = await db.rejectParticipant(req.params.id);
+    res.json(participant);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
 router.get('/admin/activations/:id/results', requireAuth, requireRole('admin'), async (req, res) => {
   try {
     const results = await db.getResultsByActivation(req.params.id);
@@ -114,6 +172,147 @@ router.get('/admin/activations/:id/participants', requireAuth, requireRole('admi
     res.status(500).json({ error: err.message });
   }
 });
+
+function renderSignupPage(activation) {
+  return `<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>Join ${activation.name}</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:#0a0a0a;color:#f0f0f0;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;min-height:100vh}
+header{padding:24px;text-align:center;border-bottom:1px solid #1a1a1a}
+header p{font-size:12px;letter-spacing:.15em;color:#555;margin-bottom:8px}
+header h1{font-size:22px;font-weight:700}
+header .sub{font-size:14px;color:#666;margin-top:6px}
+.container{max-width:480px;margin:0 auto;padding:32px 24px}
+label{display:block;font-size:12px;color:#555;text-transform:uppercase;letter-spacing:.05em;margin-bottom:6px;margin-top:20px}
+input,textarea{width:100%;background:#111;border:1px solid #222;color:#f0f0f0;padding:12px 14px;border-radius:10px;font-size:15px;outline:none;font-family:inherit}
+input:focus,textarea:focus{border-color:#444}
+input::placeholder,textarea::placeholder{color:#333}
+textarea{resize:vertical;min-height:80px}
+.upload-area{border:2px dashed #222;border-radius:12px;padding:32px;text-align:center;cursor:pointer;transition:border-color .2s;position:relative;margin-top:6px}
+.upload-area:hover{border-color:#444}
+.upload-area.has-image{border-style:solid;border-color:#333;padding:0;overflow:hidden}
+.upload-area img{width:100%;height:200px;object-fit:cover;border-radius:10px;display:block}
+.upload-area .upload-label{font-size:14px;color:#555;margin-top:8px}
+.upload-area .upload-icon{font-size:32px;margin-bottom:8px}
+.upload-area input[type=file]{position:absolute;inset:0;opacity:0;cursor:pointer;width:100%;height:100%}
+.btn{width:100%;background:#f0f0f0;color:#0a0a0a;border:none;padding:16px;border-radius:10px;font-size:16px;font-weight:700;cursor:pointer;margin-top:24px}
+.btn:disabled{opacity:.5;cursor:not-allowed}
+#success{display:none;text-align:center;padding:40px 0}
+#success h2{font-size:22px;font-weight:700;margin-bottom:8px}
+#success p{font-size:15px;color:#666}
+#error-msg{color:#ff4444;font-size:13px;margin-top:8px;text-align:center}
+.progress{height:4px;background:#222;border-radius:2px;margin-top:16px;display:none}
+.progress-bar{height:100%;background:#f0f0f0;border-radius:2px;width:0%;transition:width .3s}
+</style>
+</head>
+<body>
+<header>
+  <p>⬡ SILVER GLIDER</p>
+  <h1>${activation.name}</h1>
+  <p class="sub">Register your booth</p>
+</header>
+<div class="container">
+  <div id="form-view">
+    <label>Booth name *</label>
+    <input type="text" id="name" placeholder="e.g. Vintage Threads" maxlength="100">
+
+    <label>Description</label>
+    <textarea id="description" placeholder="Tell people what makes your booth special..." maxlength="300"></textarea>
+
+    <label>Photo</label>
+    <div class="upload-area" id="upload-area">
+      <div id="upload-placeholder">
+        <div class="upload-icon">📷</div>
+        <div>Tap to upload a photo</div>
+        <div class="upload-label">JPG, PNG — max 10MB</div>
+      </div>
+      <img id="preview-img" style="display:none">
+      <input type="file" id="image-file" accept="image/*" onchange="previewImage(this)">
+    </div>
+
+    <label>Your email (optional)</label>
+    <input type="email" id="contact-email" placeholder="you@example.com">
+
+    <label>Your phone (optional)</label>
+    <input type="tel" id="contact-phone" placeholder="+1 (555) 000-0000">
+
+    <div class="progress" id="progress-bar-wrap">
+      <div class="progress-bar" id="progress-bar"></div>
+    </div>
+
+    <button class="btn" id="submit-btn" onclick="submitForm()">Register My Booth</button>
+    <div id="error-msg"></div>
+  </div>
+
+  <div id="success">
+    <div style="font-size:48px;margin-bottom:16px">🎉</div>
+    <h2>You're registered.</h2>
+    <p>Your booth is pending review and will appear on the voting page once approved.</p>
+  </div>
+</div>
+<script>
+function previewImage(input) {
+  const file = input.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = e => {
+    const img = document.getElementById('preview-img');
+    img.src = e.target.result;
+    img.style.display = 'block';
+    document.getElementById('upload-placeholder').style.display = 'none';
+    document.getElementById('upload-area').classList.add('has-image');
+  };
+  reader.readAsDataURL(file);
+}
+
+async function submitForm() {
+  const name = document.getElementById('name').value.trim();
+  const description = document.getElementById('description').value.trim();
+  const contactEmail = document.getElementById('contact-email').value.trim();
+  const contactPhone = document.getElementById('contact-phone').value.trim();
+  const imageFile = document.getElementById('image-file').files[0];
+  const errEl = document.getElementById('error-msg');
+  const btn = document.getElementById('submit-btn');
+
+  errEl.textContent = '';
+  if (!name) { errEl.textContent = 'Booth name is required.'; return; }
+
+  btn.disabled = true;
+  btn.textContent = 'Uploading...';
+  document.getElementById('progress-bar-wrap').style.display = 'block';
+  document.getElementById('progress-bar').style.width = '30%';
+
+  const formData = new FormData();
+  formData.append('name', name);
+  formData.append('description', description);
+  formData.append('contact_email', contactEmail);
+  formData.append('contact_phone', contactPhone);
+  if (imageFile) formData.append('image', imageFile);
+
+  document.getElementById('progress-bar').style.width = '70%';
+
+  try {
+    const res = await fetch(window.location.pathname, { method: 'POST', body: formData });
+    const data = await res.json();
+    document.getElementById('progress-bar').style.width = '100%';
+    if (data.error) { errEl.textContent = data.error; btn.disabled = false; btn.textContent = 'Register My Booth'; return; }
+    document.getElementById('form-view').style.display = 'none';
+    document.getElementById('success').style.display = 'block';
+  } catch (e) {
+    errEl.textContent = 'Something went wrong. Try again.';
+    btn.disabled = false;
+    btn.textContent = 'Register My Booth';
+  }
+}
+</script>
+</body>
+</html>`;
+}
 
 function renderActivationLanding(activation, participants) {
   const cards = participants.map(p => `

@@ -225,15 +225,27 @@ textarea{resize:vertical;min-height:80px}
     <textarea id="description" placeholder="Tell people what makes your booth special..." maxlength="300"></textarea>
 
     <label>Photo</label>
-    <div class="upload-area" id="upload-area">
+    <div id="upload-area" style="margin-top:6px">
       <div id="upload-placeholder">
-        <div class="upload-icon">📷</div>
-        <div>Tap to upload a photo</div>
-        <div class="upload-label">JPG, PNG — max 10MB</div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:10px">
+          <label style="all:unset;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;background:#111;border:1px solid #222;border-radius:12px;padding:20px;cursor:pointer;font-size:13px;color:#aaa;text-align:center">
+            <span style="font-size:28px">📸</span>
+            Take a photo
+            <input type="file" accept="image/*" capture="environment" style="display:none" onchange="previewImage(this)">
+          </label>
+          <label style="all:unset;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;background:#111;border:1px solid #222;border-radius:12px;padding:20px;cursor:pointer;font-size:13px;color:#aaa;text-align:center">
+            <span style="font-size:28px">🖼️</span>
+            Choose from library
+            <input type="file" accept="image/*" style="display:none" onchange="previewImage(this)">
+          </label>
+        </div>
       </div>
-      <img id="preview-img" style="display:none">
-      <input type="file" id="image-file" accept="image/*" onchange="previewImage(this)">
+      <div id="preview-wrap" style="display:none;position:relative">
+        <img id="preview-img" style="width:100%;height:220px;object-fit:cover;border-radius:12px;display:block">
+        <button onclick="clearImage()" style="position:absolute;top:8px;right:8px;background:rgba(0,0,0,.7);color:#fff;border:none;border-radius:50%;width:28px;height:28px;font-size:16px;cursor:pointer;line-height:1">×</button>
+      </div>
     </div>
+    <input type="file" id="image-file" accept="image/*" style="display:none">
 
     <label>Your email (optional)</label>
     <input type="email" id="contact-email" placeholder="you@example.com">
@@ -256,18 +268,27 @@ textarea{resize:vertical;min-height:80px}
   </div>
 </div>
 <script>
+let selectedFile = null;
+
 function previewImage(input) {
   const file = input.files[0];
   if (!file) return;
+  selectedFile = file;
+  document.getElementById('image-file').files; // keep ref
   const reader = new FileReader();
   reader.onload = e => {
-    const img = document.getElementById('preview-img');
-    img.src = e.target.result;
-    img.style.display = 'block';
+    document.getElementById('preview-img').src = e.target.result;
     document.getElementById('upload-placeholder').style.display = 'none';
-    document.getElementById('upload-area').classList.add('has-image');
+    document.getElementById('preview-wrap').style.display = 'block';
   };
   reader.readAsDataURL(file);
+}
+
+function clearImage() {
+  selectedFile = null;
+  document.getElementById('preview-img').src = '';
+  document.getElementById('preview-wrap').style.display = 'none';
+  document.getElementById('upload-placeholder').style.display = 'block';
 }
 
 async function submitForm() {
@@ -292,7 +313,7 @@ async function submitForm() {
   formData.append('description', description);
   formData.append('contact_email', contactEmail);
   formData.append('contact_phone', contactPhone);
-  if (imageFile) formData.append('image', imageFile);
+  if (selectedFile) formData.append('image', selectedFile);
 
   document.getElementById('progress-bar').style.width = '70%';
 

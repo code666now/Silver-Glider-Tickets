@@ -154,8 +154,8 @@ tbody td{padding:10px 12px;border-bottom:1px solid #161616}
 
 </div>
 <script>
-let token = localStorage.getItem('sgt_token');
-if (!token) { window.location.href = '/admin'; }
+let token = localStorage.getItem('sg_act_token');
+if (!token) { window.location.href = '/activations-login'; }
 
 let currentActivation = null;
 let currentResults = [];
@@ -164,7 +164,7 @@ async function api(path, method='GET', body=null) {
   const opts = { method, headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' } };
   if (body) opts.body = JSON.stringify(body);
   const res = await fetch(path, opts);
-  if (res.status === 401) { window.location.href = '/admin'; return; }
+  if (res.status === 401) { window.location.href = '/activations-login'; return; }
   return res.json();
 }
 

@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>Activations — Sign In</title>
+<link rel="stylesheet" href="/css/brand.css">
+<style>
+body{display:flex;align-items:center;justify-content:center;min-height:100vh;padding:24px}
+.box{width:100%;max-width:380px}
+.logo-wrap{text-align:center;margin-bottom:40px}
+h2{font-size:20px;font-weight:700;margin-bottom:6px;text-align:center}
+p.sub{font-size:14px;color:#555;text-align:center;margin-bottom:28px}
+label{display:block;font-size:11px;color:#555;text-transform:uppercase;letter-spacing:.08em;margin-bottom:6px;margin-top:18px}
+input{width:100%;background:#111;border:1px solid #222;color:#f0f0f0;padding:13px 14px;border-radius:10px;font-size:15px;outline:none;font-family:inherit}
+input:focus{border-color:#444}
+button{width:100%;background:#1CC5BE;color:#0a0a0a;border:none;padding:15px;border-radius:10px;font-size:16px;font-weight:700;cursor:pointer;margin-top:24px}
+button:disabled{opacity:.5;cursor:not-allowed}
+#err{color:#ff4444;font-size:13px;text-align:center;margin-top:10px;min-height:18px}
+</style>
+</head>
+<body>
+<div class="box">
+  <div class="logo-wrap">
+    <a href="/" class="sg-logo">
+      <img src="/logo.png" alt="Silver Glider">
+      <div class="sg-logo-text">
+        <span class="sg-logo-name">Silver Glider</span>
+        <span class="sg-logo-sub">Activations</span>
+      </div>
+    </a>
+  </div>
+  <h2>Admin Sign In</h2>
+  <p class="sub">Activations management</p>
+  <label>Password</label>
+  <input type="password" id="pw" placeholder="Enter admin password" onkeydown="if(event.key==='Enter')login()">
+  <button id="btn" onclick="login()">Sign In</button>
+  <div id="err"></div>
+</div>
+<script>
+async function login() {
+  const pw = document.getElementById('pw').value;
+  const btn = document.getElementById('btn');
+  const err = document.getElementById('err');
+  err.textContent = '';
+  if (!pw) { err.textContent = 'Password required.'; return; }
+  btn.disabled = true;
+  btn.textContent = 'Signing in...';
+  try {
+    const res = await fetch('/activations/admin/login', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ password: pw })
+    });
+    const data = await res.json();
+    if (data.error) { err.textContent = data.error; btn.disabled = false; btn.textContent = 'Sign In'; return; }
+    localStorage.setItem('sg_act_token', data.token);
+    window.location.href = '/activations/admin/activations';
+  } catch(e) {
+    err.textContent = 'Something went wrong.';
+    btn.disabled = false;
+    btn.textContent = 'Sign In';
+  }
+}
+</script>
+</body>
+</html>

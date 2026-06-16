@@ -1,11 +1,20 @@
 const express = require('express');
 const router = express.Router();
 const db = require('../db/activationsDB');
-const { requireAuth, requireRole } = require('../middleware/auth');
+const { requireActivationsAdmin } = require('../middleware/auth');
+const jwt = require('jsonwebtoken');
 const path = require('path');
 const multer = require('multer');
 const { uploadImage } = require('../lib/cloudinary');
 const upload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 10 * 1024 * 1024 } });
+
+router.post('/admin/login', async (req, res) => {
+  const { password } = req.body;
+  const correct = process.env.ACTIVATIONS_ADMIN_PASS || 'activations2026';
+  if (password !== correct) return res.status(401).json({ error: 'Wrong password' });
+  const token = jwt.sign({ role: 'activations_admin' }, process.env.ACTIVATIONS_ADMIN_SECRET || 'activations-secret', { expiresIn: '7d' });
+  res.json({ token });
+});
 
 router.get('/:activationSlug/join', async (req, res) => {
   const activation = await db.getActivationBySlug(req.params.activationSlug);
@@ -80,11 +89,11 @@ router.post('/:activationSlug/:participantSlug/optin', async (req, res) => {
   }
 });
 
-router.get('/admin/activations', requireAuth, requireRole('admin'), async (req, res) => {
+router.get('/admin/activations', requireActivationsAdmin, async (req, res) => {
   res.sendFile(path.resolve(__dirname, '../views/activations-admin.html'));
 });
 
-router.get('/admin/activations/data', requireAuth, requireRole('admin'), async (req, res) => {
+router.get('/admin/activations/data', requireActivationsAdmin, async (req, res) => {
   try {
     const activations = await db.getAllActivations();
     res.json(activations);
@@ -93,7 +102,7 @@ router.get('/admin/activations/data', requireAuth, requireRole('admin'), async (
   }
 });
 
-router.post('/admin/activations/create', requireAuth, requireRole('admin'), async (req, res) => {
+router.post('/admin/activations/create', requireActivationsAdmin, async (req, res) => {
   try {
     const { name, slug, description } = req.body;
     const activation = await db.createActivation({ name, slug: slug.toLowerCase().replace(/\s+/g, '-'), description });
@@ -103,7 +112,7 @@ router.post('/admin/activations/create', requireAuth, requireRole('admin'), asyn
   }
 });
 
-router.post('/admin/activations/:id/participants', requireAuth, requireRole('admin'), async (req, res) => {
+router.post('/admin/activations/:id/participants', requireActivationsAdmin, async (req, res) => {
   try {
     const { name, slug, description, image_url } = req.body;
     const participant = await db.createParticipant({
@@ -117,7 +126,7 @@ router.post('/admin/activations/:id/participants', requireAuth, requireRole('adm
   }
 });
 
-router.put('/admin/activations/participants/:id', requireAuth, requireRole('admin'), async (req, res) => {
+router.put('/admin/activations/participants/:id', requireActivationsAdmin, async (req, res) => {
   try {
     const { name, slug, description, image_url } = req.body;
     const participant = await db.updateParticipant(req.params.id, { name, slug, description, image_url });
@@ -127,7 +136,7 @@ router.put('/admin/activations/participants/:id', requireAuth, requireRole('admi
   }
 });
 
-router.get('/admin/activations/:id/pending', requireAuth, requireRole('admin'), async (req, res) => {
+router.get('/admin/activations/:id/pending', requireActivationsAdmin, async (req, res) => {
   try {
     const pending = await db.getPendingParticipants(req.params.id);
     res.json(pending);
@@ -136,7 +145,7 @@ router.get('/admin/activations/:id/pending', requireAuth, requireRole('admin'), 
   }
 });
 
-router.post('/admin/activations/participants/:id/approve', requireAuth, requireRole('admin'), async (req, res) => {
+router.post('/admin/activations/participants/:id/approve', requireActivationsAdmin, async (req, res) => {
   try {
     const participant = await db.approveParticipant(req.params.id);
     res.json(participant);
@@ -145,7 +154,7 @@ router.post('/admin/activations/participants/:id/approve', requireAuth, requireR
   }
 });
 
-router.post('/admin/activations/participants/:id/reject', requireAuth, requireRole('admin'), async (req, res) => {
+router.post('/admin/activations/participants/:id/reject', requireActivationsAdmin, async (req, res) => {
   try {
     const participant = await db.rejectParticipant(req.params.id);
     res.json(participant);
@@ -154,7 +163,7 @@ router.post('/admin/activations/participants/:id/reject', requireAuth, requireRo
   }
 });
 
-router.get('/admin/activations/:id/results', requireAuth, requireRole('admin'), async (req, res) => {
+router.get('/admin/activations/:id/results', requireActivationsAdmin, async (req, res) => {
   try {
     const results = await db.getResultsByActivation(req.params.id);
     const optins = await db.getOptinsByActivation(req.params.id);
@@ -164,7 +173,7 @@ router.get('/admin/activations/:id/results', requireAuth, requireRole('admin'), 
   }
 });
 
-router.get('/admin/activations/:id/participants', requireAuth, requireRole('admin'), async (req, res) => {
+router.get('/admin/activations/:id/participants', requireActivationsAdmin, async (req, res) => {
   try {
     const participants = await db.getParticipantsByActivation(req.params.id);
     res.json(participants);

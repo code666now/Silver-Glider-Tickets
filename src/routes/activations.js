@@ -167,7 +167,9 @@ router.get('/:activationSlug/:participantSlug/profile', async (req, res) => {
   if (!activation) return res.status(404).send('Not found');
   const participant = await db.getParticipantBySlug(activation.id, req.params.participantSlug);
   if (!participant) return res.status(404).send('Not found');
-  const voteUrl = `${process.env.RAILWAY_BASE_URL || ''}/activations/${activation.slug}/${participant.slug}`;
+  const baseUrl = process.env.RAILWAY_BASE_URL
+    || (process.env.RAILWAY_PUBLIC_DOMAIN ? `https://${process.env.RAILWAY_PUBLIC_DOMAIN}` : '');
+  const voteUrl = `${baseUrl}/activations/${activation.slug}/${participant.slug}`;
   res.send(renderProfilePage(activation, participant, voteUrl));
 });
 

@@ -536,7 +536,7 @@ footer{text-align:center;padding:32px;font-size:12px;color:#333}
     </div>
   </div>
 </div>
-<footer>Silver Glider</footer>
+<footer>Powered by Silver Glider music discovery</footer>
 <script>
 function getFingerprint() {
   let fp = localStorage.getItem('sg_fp');

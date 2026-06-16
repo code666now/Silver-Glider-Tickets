@@ -186,6 +186,22 @@ router.get('/:activationSlug', async (req, res) => {
   res.send(renderActivationLanding(activation, participants));
 });
 
+router.post('/admin/activations/:id/close-voting', requireActivationsAdmin, async (req, res) => {
+  try {
+    const activation = await db.closeVoting(req.params.id);
+    res.json(activation);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+router.get('/:activationSlug/winner', async (req, res) => {
+  const activation = await db.getActivationBySlug(req.params.activationSlug);
+  if (!activation) return res.status(404).send('Not found');
+  const winner = await db.getWinner(activation.id);
+  res.send(renderWinnerPage(activation, winner));
+});
+
 router.get('/:activationSlug/qr', async (req, res) => {
   const activation = await db.getActivationBySlug(req.params.activationSlug);
   if (!activation) return res.status(404).send('Not found');
@@ -213,7 +229,7 @@ router.get('/:activationSlug/:participantSlug', async (req, res) => {
   if (!activation || !activation.active) return res.status(404).send('Not found');
   const participant = await db.getParticipantBySlug(activation.id, req.params.participantSlug);
   if (!participant) return res.status(404).send('Not found');
-  res.send(renderVotingPage(activation, participant));
+  res.send(renderVotingPage(activation, participant, activation.voting_closed));
 });
 
 router.post('/:activationSlug/:participantSlug/vote', voteRateLimit, async (req, res) => {
@@ -223,6 +239,7 @@ router.post('/:activationSlug/:participantSlug/vote', voteRateLimit, async (req,
     const participant = await db.getParticipantBySlug(activation.id, req.params.participantSlug);
     if (!participant) return res.status(404).json({ error: 'Not found' });
     const { vote, fingerprint } = req.body;
+    if (activation.voting_closed) return res.status(403).json({ error: 'Voting is closed' });
     if (!['rules', 'hell_yeah', 'no_thanks'].includes(vote)) return res.status(400).json({ error: 'Invalid vote' });
     const result = await db.castVote({ participant_id: participant.id, activation_id: activation.id, vote, browser_fingerprint: fingerprint });
     res.json(result);
@@ -517,7 +534,7 @@ footer{text-align:center;padding:32px;font-size:12px;color:#333;border-top:1px s
 </html>`;
 }
 
-function renderVotingPage(activation, participant) {
+function renderVotingPage(activation, participant, votingClosed = false) {
   return `<!DOCTYPE html>
 <html lang="en">
 <head>
@@ -591,6 +608,14 @@ footer span{color:#333}
 
 <div class="container">
   <div id="vote-section">
+    ${votingClosed ? `
+    <div style="background:rgba(28,197,190,.08);border:1px solid rgba(28,197,190,.2);border-radius:14px;padding:24px;text-align:center;margin-bottom:16px">
+      <div style="font-size:28px;margin-bottom:8px">🏁</div>
+      <p style="font-size:16px;font-weight:700;margin-bottom:6px">Voting is closed</p>
+      <p style="font-size:14px;color:#888;margin-bottom:16px">The winner has been announced.</p>
+      <a href="/activations/${activation.slug}/winner" style="display:inline-block;background:#1CC5BE;color:#0a0a0a;padding:12px 28px;border-radius:10px;font-size:15px;font-weight:700;text-decoration:none">See the winner</a>
+    </div>
+    ` : `
     <p class="vote-label">Best Booth Award — cast your vote</p>
     <div class="vote-buttons">
       <button class="vote-btn-primary" onclick="castVote('rules')">🔥 This Booth Rules!</button>
@@ -599,6 +624,7 @@ footer span{color:#333}
     </div>
     <p class="vote-hint">Top booth wins 2 concert tickets.</p>
     <div id="duplicate-msg">You already voted for this booth.</div>
+    `}
   </div>
 
   <div id="thank-you">
@@ -680,6 +706,76 @@ async function submitOptin() {
 }
 
 const fp = getFingerprint();
+</script>
+</body>
+</html>`;
+}
+
+function renderWinnerPage(activation, winner) {
+  const winnerUrl = `${process.env.RAILWAY_PUBLIC_DOMAIN ? `https://${process.env.RAILWAY_PUBLIC_DOMAIN}` : ''}/activations/${activation.slug}/winner`;
+  return `<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0,viewport-fit=cover">
+<meta name="theme-color" content="#0a0a0a">
+<title>🏆 ${winner ? winner.name : 'Winner'} — ${activation.name}</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+body{background:#0a0a0a;color:#f0f0f0;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;min-height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:24px;padding-top:max(24px,env(safe-area-inset-top))}
+.confetti{font-size:40px;margin-bottom:16px;text-align:center;letter-spacing:8px}
+.event-label{font-size:11px;color:#555;text-transform:uppercase;letter-spacing:.1em;text-align:center;margin-bottom:8px}
+h1{font-size:15px;font-weight:600;color:#666;text-align:center;margin-bottom:32px}
+.winner-card{width:100%;max-width:400px;background:#111;border:1px solid rgba(28,197,190,.3);border-radius:20px;overflow:hidden;margin-bottom:24px}
+.winner-img{width:100%;aspect-ratio:1/1;object-fit:cover;display:block}
+.winner-placeholder{width:100%;aspect-ratio:1/1;background:#1a1a1a;display:flex;align-items:center;justify-content:center;font-size:100px;font-weight:700;color:#222}
+.winner-body{padding:24px;text-align:center}
+.crown{font-size:36px;margin-bottom:8px}
+.winner-name{font-size:28px;font-weight:800;margin-bottom:6px;color:#f0f0f0}
+.winner-desc{font-size:14px;color:#666;margin-bottom:16px}
+.vote-count{font-size:13px;color:#1CC5BE;font-weight:600}
+.share-btn{display:inline-flex;align-items:center;gap:8px;background:#1CC5BE;color:#0a0a0a;border:none;padding:14px 32px;border-radius:12px;font-size:15px;font-weight:700;cursor:pointer;width:100%;justify-content:center;margin-top:20px;-webkit-appearance:none}
+.share-btn:active{opacity:.85}
+footer{font-size:11px;color:#2a2a2a;padding:20px;text-align:center}
+</style>
+</head>
+<body>
+<div class="confetti">🎉🏆🎉</div>
+<p class="event-label">${activation.name}</p>
+<h1>Best Booth Award Winner</h1>
+
+${winner ? `
+<div class="winner-card">
+  ${winner.image_url
+    ? `<img class="winner-img" src="${winner.image_url}" alt="${winner.name}">`
+    : `<div class="winner-placeholder">${winner.name[0]}</div>`}
+  <div class="winner-body">
+    <div class="crown">🏆</div>
+    <div class="winner-name">${winner.name}</div>
+    ${winner.description ? `<p class="winner-desc">${winner.description}</p>` : ''}
+    <p class="vote-count">${winner.total} votes</p>
+    ${winner.instagram_handle ? `<a href="https://instagram.com/${winner.instagram_handle}" target="_blank" rel="noopener noreferrer" style="display:inline-flex;align-items:center;gap:6px;color:#555;text-decoration:none;font-size:13px;margin-top:10px">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="2" width="20" height="20" rx="5" ry="5"/><circle cx="12" cy="12" r="4"/><circle cx="17.5" cy="6.5" r="1.5" fill="currentColor" stroke="none"/></svg>
+      @${winner.instagram_handle}
+    </a>` : ''}
+    <button class="share-btn" onclick="shareWinner()">Share the winner</button>
+  </div>
+</div>
+` : `<p style="color:#555;text-align:center">No winner yet — check back soon.</p>`}
+
+<footer>Powered by Silver Glider</footer>
+<script>
+function shareWinner() {
+  const url = '${winnerUrl}';
+  if (navigator.share) {
+    navigator.share({ title: '🏆 ${winner ? winner.name : ''} wins ${activation.name}!', url });
+  } else {
+    navigator.clipboard.writeText(url);
+    const btn = document.querySelector('.share-btn');
+    btn.textContent = 'Link copied!';
+    setTimeout(() => btn.textContent = 'Share the winner', 2000);
+  }
+}
 </script>
 </body>
 </html>`;

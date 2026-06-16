@@ -26,6 +26,25 @@ async function updateActivation(id, { name, description, active }) {
   return r.rows[0];
 }
 
+async function closeVoting(id) {
+  await pool.query('ALTER TABLE sg_activations ADD COLUMN IF NOT EXISTS voting_closed BOOLEAN DEFAULT FALSE');
+  const r = await pool.query(
+    'UPDATE sg_activations SET voting_closed=TRUE WHERE id=$1 RETURNING *', [id]
+  );
+  return r.rows[0];
+}
+
+async function getWinner(activation_id) {
+  const r = await pool.query(`
+    SELECT p.*, COUNT(v.id) AS total
+    FROM sg_participants p
+    LEFT JOIN sg_activation_votes v ON v.participant_id = p.id
+    WHERE p.activation_id = $1 AND p.status = 'approved'
+    GROUP BY p.id ORDER BY total DESC LIMIT 1
+  `, [activation_id]);
+  return r.rows[0];
+}
+
 async function getParticipantsByActivation(activation_id) {
   const r = await pool.query(
     "SELECT * FROM sg_participants WHERE activation_id = $1 AND status = 'approved' ORDER BY name ASC",
@@ -124,7 +143,7 @@ async function getOptinsByActivation(activation_id) {
 }
 
 module.exports = {
-  getActivationBySlug, getAllActivations, createActivation, updateActivation,
+  getActivationBySlug, getAllActivations, createActivation, updateActivation, closeVoting, getWinner,
   getParticipantsByActivation, getParticipantBySlug, createParticipant, updateParticipant,
   getPendingParticipants, approveParticipant, rejectParticipant,
   castVote, getResultsByActivation, createOptin, getOptinsByActivation

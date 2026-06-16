@@ -82,9 +82,11 @@ tbody td{padding:10px 12px;border-bottom:1px solid #161616}
   <div id="detail-view">
     <span class="back-link" onclick="showList()">&larr; All Activations</span>
     <h2 id="detail-title" style="font-size:22px;font-weight:700;margin-bottom:4px"></h2>
-    <div style="display:flex;align-items:center;gap:12px;margin-bottom:24px">
+    <div style="display:flex;align-items:center;gap:12px;margin-bottom:24px;flex-wrap:wrap">
       <p id="detail-url" style="font-size:12px;color:#555;font-family:monospace;flex:1"></p>
       <a id="master-qr-link" href="#" target="_blank" class="btn-sm" style="text-decoration:none;white-space:nowrap">Master QR</a>
+      <a id="winner-page-link" href="#" target="_blank" class="btn-sm" style="text-decoration:none;white-space:nowrap">Winner Page</a>
+      <button id="close-voting-btn" class="btn-sm" style="color:#ff4444;border-color:#3a1a1a;white-space:nowrap" onclick="closeVoting()">Close Voting</button>
     </div>
 
     <div class="tabs">
@@ -249,6 +251,7 @@ function openActivation(id, name, slug) {
   document.getElementById('detail-title').textContent = name;
   document.getElementById('detail-url').textContent = window.location.origin + '/activations/' + slug;
   document.getElementById('master-qr-link').href = '/activations/' + slug + '/qr';
+  document.getElementById('winner-page-link').href = '/activations/' + slug + '/winner';
   loadParticipants();
 }
 
@@ -481,6 +484,20 @@ function exportCSV() {
   const blob = new Blob([csv], { type: 'text/csv' });
   const url = URL.createObjectURL(blob);
   const a = document.createElement('a'); a.href = url; a.download = `${currentActivation.slug}-results.csv`; a.click();
+}
+
+async function closeVoting() {
+  if (!confirm('Close voting and announce the winner? This cannot be undone.')) return;
+  const btn = document.getElementById('close-voting-btn');
+  btn.disabled = true;
+  btn.textContent = 'Closing...';
+  const result = await api(`/activations/admin/activations/${currentActivation.id}/close-voting`, 'POST');
+  if (result.error) { alert(result.error); btn.disabled = false; btn.textContent = 'Close Voting'; return; }
+  btn.textContent = 'Voting Closed';
+  btn.style.color = '#555';
+  btn.style.borderColor = '#222';
+  alert('Voting is closed. Share the winner page with your audience!');
+  window.open('/activations/' + currentActivation.slug + '/winner', '_blank');
 }
 
 function openEditModal(p) {

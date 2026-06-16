@@ -324,8 +324,9 @@ async function loadParticipants() {
         <div class="name">${p.name}</div>
         <div class="slug">/activations/${currentActivation.slug}/${p.slug}</div>
       </div>
-      <div style="display:flex;gap:8px">
-        <button class="btn-sm" onclick="copyUrl('${window.location.origin}/activations/${currentActivation.slug}/${p.slug}')">Copy URL</button>
+      <div style="display:flex;gap:8px;flex-wrap:wrap;justify-content:flex-end">
+        <button class="btn-sm" onclick="copyUrl('${window.location.origin}/activations/${currentActivation.slug}/${p.slug}')">Copy Vote URL</button>
+        <a class="btn-sm" href="/activations/${currentActivation.slug}/${p.slug}/profile" target="_blank" style="text-decoration:none">QR Profile</a>
         <button class="btn-sm" onclick="openEditModal(${JSON.stringify(p).replace(/"/g,'&quot;')})">Edit</button>
       </div>
     </div>

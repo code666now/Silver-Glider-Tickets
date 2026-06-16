@@ -391,8 +391,10 @@ function renderActivationLanding(activation, participants) {
 <title>${activation.name}</title>
 <style>
 *{box-sizing:border-box;margin:0;padding:0}
-body{background:#0a0a0a;color:#f0f0f0;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;min-height:100vh}
-header{padding:20px 16px 16px;text-align:center;border-bottom:1px solid #1a1a1a}
+body{color:#f0f0f0;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;min-height:100vh;background:#0a0a0a url('/goers-bg.jpg') center/cover fixed}
+body::before{content:'';position:fixed;inset:0;background:rgba(0,0,0,.82);z-index:0}
+header,.prize-card,.container,footer{position:relative;z-index:1}
+header{padding:20px 16px 16px;text-align:center;border-bottom:1px solid rgba(255,255,255,.08)}
 header h1{font-size:26px;font-weight:800;margin-top:12px;letter-spacing:-.02em}
 header .tagline{font-size:13px;color:#555;margin-top:6px}
 .sg-logo{display:inline-flex;align-items:center;gap:10px;background:#161616;border:1px solid #2a2a2a;border-radius:40px;padding:8px 18px 8px 10px;text-decoration:none}

@@ -722,7 +722,9 @@ function renderWinnerPage(activation, winner) {
 <title>🏆 ${winner ? winner.name : 'Winner'} — ${activation.name}</title>
 <style>
 *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
-body{background:#0a0a0a;color:#f0f0f0;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;min-height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:24px;padding-top:max(24px,env(safe-area-inset-top))}
+body{background:#0a0a0a url('/winner-bg.jpg') center/cover fixed;color:#f0f0f0;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;min-height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:24px;padding-top:max(24px,env(safe-area-inset-top))}
+body::before{content:'';position:fixed;inset:0;background:rgba(0,0,0,.75);z-index:0}
+.confetti,.event-label,h1,.winner-card,footer{position:relative;z-index:1}
 .confetti{font-size:40px;margin-bottom:16px;text-align:center;letter-spacing:8px}
 .event-label{font-size:11px;color:#555;text-transform:uppercase;letter-spacing:.1em;text-align:center;margin-bottom:8px}
 h1{font-size:15px;font-weight:600;color:#666;text-align:center;margin-bottom:32px}

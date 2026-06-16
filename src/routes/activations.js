@@ -487,15 +487,24 @@ footer{text-align:center;padding:32px;font-size:12px;color:#333}
 
   <div id="thank-you">
     <h2>Vote counted.</h2>
-    <p>Thanks for sharing your take.</p>
+    <p style="font-size:15px;color:#666;margin-bottom:28px">Thanks for sharing your take.</p>
     <div class="optin-box">
-      <h3>Want local concert recommendations by text?</h3>
-      <p>Silver Glider drops music picks straight to your phone.</p>
+      <h3>Get 3 SF shows every Friday by text.</h3>
+      <p>Silver Glider is a music discovery service. Every Friday we send 3 concerts worth going to this week — straight to your phone. Free.</p>
       <div class="optin-row">
         <input type="tel" id="phone-input" placeholder="Your phone number">
         <button onclick="submitOptin()">Join</button>
       </div>
-      <div id="optin-done">You're in. Watch for a text soon.</div>
+      <div id="optin-done" style="display:none">
+        <p style="font-size:14px;color:#1CC5BE;font-weight:700;margin-top:12px">You're on The Line.</p>
+        <p style="font-size:13px;color:#555;margin-top:4px">First drop hits Friday. See you there.</p>
+      </div>
+    </div>
+    <div id="instagram-follow" style="margin-top:20px;text-align:center">
+      <a href="https://instagram.com/silverglidertickets" target="_blank" rel="noopener noreferrer" style="display:inline-flex;align-items:center;gap:8px;color:#555;font-size:13px;text-decoration:none;border:1px solid #222;border-radius:8px;padding:10px 16px;transition:border-color .2s" onmouseover="this.style.borderColor='#444'" onmouseout="this.style.borderColor='#222'">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="2" width="20" height="20" rx="5" ry="5"/><circle cx="12" cy="12" r="4"/><circle cx="17.5" cy="6.5" r="1.5" fill="currentColor" stroke="none"/></svg>
+        @silverglidertickets
+      </a>
     </div>
   </div>
 </div>

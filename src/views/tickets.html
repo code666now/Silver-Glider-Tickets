@@ -3,6 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
+<link rel="stylesheet" href="/css/brand.css">
 <title>Find My Tickets — Silver Glider</title>
 <style>
 *{box-sizing:border-box;margin:0;padding:0}
@@ -14,7 +15,7 @@ p.sub{font-size:14px;color:#555;text-align:center;margin-bottom:28px;line-height
 input{width:100%;background:#1a1a1a;border:1px solid #2a2a2a;color:#f0f0f0;padding:14px 16px;border-radius:8px;font-size:16px;margin-bottom:12px;outline:none}
 input:focus{border-color:#444}
 input::placeholder{color:#444}
-button{width:100%;background:#f0f0f0;color:#0a0a0a;border:none;padding:14px;border-radius:8px;font-size:16px;font-weight:600;cursor:pointer}
+button{width:100%;background:#1CC5BE;color:#0a0a0a;border:none;padding:14px;border-radius:8px;font-size:16px;font-weight:600;cursor:pointer}
 button:disabled{background:#222;color:#444;cursor:default}
 #msg{margin-top:16px;font-size:14px;text-align:center;line-height:1.6;display:none}
 #msg.success{color:#4caf50}
@@ -24,7 +25,7 @@ button:disabled{background:#222;color:#444;cursor:default}
 </head>
 <body>
 <div class="card">
-  <div class="logo">⬡ SILVER GLIDER</div>
+  <div class="logo"><a href="/" class="sg-logo"><img src="/logo.png" alt="Silver Glider"><div class="sg-logo-text"><span class="sg-logo-name">Silver Glider</span><span class="sg-logo-sub">Tickets</span></div></a></div>
   <h1>Find My Tickets</h1>
   <p class="sub">Enter the email you used to purchase your tickets and we'll resend your wallet link.</p>
   <input type="email" id="email-input" placeholder="Your email address" autocomplete="email">

@@ -200,19 +200,23 @@ textarea{resize:vertical;min-height:80px}
 .upload-area .upload-label{font-size:14px;color:#555;margin-top:8px}
 .upload-area .upload-icon{font-size:32px;margin-bottom:8px}
 .upload-area input[type=file]{position:absolute;inset:0;opacity:0;cursor:pointer;width:100%;height:100%}
-.btn{width:100%;background:#f0f0f0;color:#0a0a0a;border:none;padding:16px;border-radius:10px;font-size:16px;font-weight:700;cursor:pointer;margin-top:24px}
+.btn{width:100%;background:#1CC5BE;color:#0a0a0a;border:none;padding:16px;border-radius:10px;font-size:16px;font-weight:700;cursor:pointer;margin-top:24px}
 .btn:disabled{opacity:.5;cursor:not-allowed}
 #success{display:none;text-align:center;padding:40px 0}
 #success h2{font-size:22px;font-weight:700;margin-bottom:8px}
 #success p{font-size:15px;color:#666}
 #error-msg{color:#ff4444;font-size:13px;margin-top:8px;text-align:center}
 .progress{height:4px;background:#222;border-radius:2px;margin-top:16px;display:none}
-.progress-bar{height:100%;background:#f0f0f0;border-radius:2px;width:0%;transition:width .3s}
+.progress-bar{height:100%;background:#1CC5BE;border-radius:2px;width:0%;transition:width .3s}
+.sg-logo{display:inline-flex;align-items:center;gap:10px;background:#161616;border:1px solid #2a2a2a;border-radius:40px;padding:8px 18px 8px 10px;text-decoration:none}
+.sg-logo img{width:28px;height:28px;object-fit:contain}
+.sg-logo-name{display:block;font-size:13px;font-weight:700;color:#fff;letter-spacing:.08em;text-transform:uppercase}
+.sg-logo-sub{display:block;font-size:9px;color:#666;letter-spacing:.15em;text-transform:uppercase}
 </style>
 </head>
 <body>
 <header>
-  <p>⬡ SILVER GLIDER</p>
+  <a href="/" class="sg-logo"><img src="/logo.png" alt="Silver Glider"><div><span class="sg-logo-name">Silver Glider</span><span class="sg-logo-sub">Tickets</span></div></a>
   <h1>${activation.name}</h1>
   <p class="sub">Register your booth</p>
 </header>
@@ -374,7 +378,7 @@ footer{text-align:center;padding:32px;font-size:12px;color:#333}
 </head>
 <body>
 <header>
-  <p>⬡ SILVER GLIDER</p>
+  <div style="display:flex;justify-content:center;margin-bottom:16px"><a href="/" style="display:inline-flex;align-items:center;gap:10px;background:#161616;border:1px solid #2a2a2a;border-radius:40px;padding:8px 18px 8px 10px;text-decoration:none"><img src="/logo.png" alt="Silver Glider" style="width:28px;height:28px;object-fit:contain"><div><span style="display:block;font-size:13px;font-weight:700;color:#fff;letter-spacing:.08em;text-transform:uppercase">Silver Glider</span><span style="display:block;font-size:9px;color:#666;letter-spacing:.15em;text-transform:uppercase">Tickets</span></div></a></div>
   <h1>${activation.name}</h1>
   ${activation.description ? `<p class="desc">${activation.description}</p>` : ''}
 </header>
@@ -409,7 +413,7 @@ h1{font-size:24px;font-weight:700;margin-bottom:8px}
 .vote-buttons{display:flex;flex-direction:column;gap:12px;margin-bottom:32px}
 .vote-btn{background:#111;border:1px solid #222;color:#f0f0f0;padding:16px;border-radius:12px;font-size:18px;cursor:pointer;transition:border-color .2s,background .2s;width:100%}
 .vote-btn:hover{border-color:#444;background:#1a1a1a}
-.vote-btn.selected{border-color:#f0f0f0;background:#1a1a1a}
+.vote-btn.selected{border-color:#1CC5BE;background:#1a1a1a}
 #thank-you{display:none;padding:32px 0}
 #thank-you h2{font-size:22px;font-weight:700;margin-bottom:8px}
 #thank-you p{font-size:15px;color:#666;margin-bottom:32px}
@@ -420,7 +424,7 @@ h1{font-size:24px;font-weight:700;margin-bottom:8px}
 .optin-row input{flex:1;background:#1a1a1a;border:1px solid #2a2a2a;color:#f0f0f0;padding:12px 14px;border-radius:8px;font-size:15px;outline:none}
 .optin-row input::placeholder{color:#444}
 .optin-row input:focus{border-color:#444}
-.optin-row button{background:#f0f0f0;color:#0a0a0a;border:none;padding:12px 20px;border-radius:8px;font-size:15px;font-weight:600;cursor:pointer}
+.optin-row button{background:#1CC5BE;color:#0a0a0a;border:none;padding:12px 20px;border-radius:8px;font-size:15px;font-weight:600;cursor:pointer}
 #optin-done{display:none;font-size:13px;color:#4caf50;margin-top:8px}
 #duplicate-msg{display:none;font-size:13px;color:#888;margin-top:8px}
 footer{text-align:center;padding:32px;font-size:12px;color:#333}

@@ -11,8 +11,8 @@ const upload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 10 
 // Simple in-memory rate limiter: max 30 votes per IP per 10 minutes
 const voteRateLimit = (() => {
   const counts = new Map();
-  const WINDOW_MS = 10 * 60 * 1000;
-  const MAX = 30;
+  const WINDOW_MS = 60 * 60 * 1000;
+  const MAX = 150;
   setInterval(() => {
     const now = Date.now();
     for (const [key, entry] of counts) {

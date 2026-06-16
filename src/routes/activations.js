@@ -162,6 +162,15 @@ router.get('/:activationSlug', async (req, res) => {
   res.send(renderActivationLanding(activation, participants));
 });
 
+router.get('/:activationSlug/qr', async (req, res) => {
+  const activation = await db.getActivationBySlug(req.params.activationSlug);
+  if (!activation) return res.status(404).send('Not found');
+  const baseUrl = process.env.RAILWAY_BASE_URL
+    || (process.env.RAILWAY_PUBLIC_DOMAIN ? `https://${process.env.RAILWAY_PUBLIC_DOMAIN}` : '');
+  const landingUrl = `${baseUrl}/activations/${activation.slug}`;
+  res.send(renderMasterQRPage(activation, landingUrl));
+});
+
 router.get('/:activationSlug/:participantSlug/profile', async (req, res) => {
   const activation = await db.getActivationBySlug(req.params.activationSlug);
   if (!activation) return res.status(404).send('Not found');
@@ -639,6 +648,65 @@ async function submitOptin() {
 
 const fp = getFingerprint();
 </script>
+</body>
+</html>`;
+}
+
+function renderMasterQRPage(activation, landingUrl) {
+  const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=320x320&margin=20&color=0a0a0a&bgcolor=f5f0eb&data=${encodeURIComponent(landingUrl)}`;
+  return `<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>${activation.name} — Master QR</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:#0a0a0a;color:#f0f0f0;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;min-height:100vh;display:flex;flex-direction:column;align-items:center}
+header{width:100%;max-width:480px;padding:16px 20px}
+header a{color:#555;text-decoration:none;font-size:13px}
+.card{width:100%;max-width:420px;margin:16px auto 32px;background:#111;border:1px solid #1a1a1a;border-radius:20px;padding:32px;text-align:center}
+.event-label{font-size:11px;color:#555;text-transform:uppercase;letter-spacing:.1em;margin-bottom:12px}
+h1{font-size:24px;font-weight:700;margin-bottom:6px}
+.sub{font-size:14px;color:#555;margin-bottom:32px}
+.qr-section{background:#f5f0eb;border-radius:16px;padding:28px;margin-bottom:24px}
+.qr-section img{width:220px;height:220px;display:block;margin:0 auto 16px}
+.qr-label{font-size:14px;color:#1a1a1a;font-weight:700;margin-bottom:4px}
+.qr-sub{font-size:12px;color:#888}
+.url{font-size:11px;color:#444;font-family:monospace;margin-top:16px;word-break:break-all}
+.print-btn{display:flex;align-items:center;justify-content:center;gap:8px;width:100%;background:#1CC5BE;color:#0a0a0a;border:none;padding:15px;border-radius:12px;font-size:15px;font-weight:700;cursor:pointer}
+.print-btn:active{opacity:.85}
+footer{font-size:11px;color:#2a2a2a;padding:20px}
+@media print{
+  header,.print-btn{display:none}
+  body{background:#f5f0eb;color:#0a0a0a}
+  .card{border:none;background:transparent;max-width:100%}
+  h1{color:#0a0a0a}
+  .sub,.event-label{color:#555}
+  .qr-section{background:#fff;border:1px solid #ddd}
+  .qr-section img{width:260px;height:260px}
+  footer{color:#aaa}
+}
+</style>
+</head>
+<body>
+<header><a href="/activations/admin/activations">&larr; Back to admin</a></header>
+<div class="card">
+  <p class="event-label">Master QR Code</p>
+  <h1>${activation.name}</h1>
+  <p class="sub">Place at entrance — scan to see all booths and vote</p>
+  <div class="qr-section">
+    <img src="${qrUrl}" alt="QR code for ${activation.name}">
+    <p class="qr-label">Vote for Best Booth</p>
+    <p class="qr-sub">Scan to see all booths competing</p>
+  </div>
+  <p class="url">${landingUrl}</p>
+  <button class="print-btn" style="margin-top:20px" onclick="window.print()">
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 6 2 18 2 18 9"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg>
+    Print this page
+  </button>
+</div>
+<footer>Powered by Silver Glider</footer>
 </body>
 </html>`;
 }

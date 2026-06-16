@@ -82,7 +82,10 @@ tbody td{padding:10px 12px;border-bottom:1px solid #161616}
   <div id="detail-view">
     <span class="back-link" onclick="showList()">&larr; All Activations</span>
     <h2 id="detail-title" style="font-size:22px;font-weight:700;margin-bottom:4px"></h2>
-    <p id="detail-url" style="font-size:12px;color:#555;font-family:monospace;margin-bottom:24px"></p>
+    <div style="display:flex;align-items:center;gap:12px;margin-bottom:24px">
+      <p id="detail-url" style="font-size:12px;color:#555;font-family:monospace;flex:1"></p>
+      <a id="master-qr-link" href="#" target="_blank" class="btn-sm" style="text-decoration:none;white-space:nowrap">Master QR</a>
+    </div>
 
     <div class="tabs">
       <div class="tab active" onclick="showTab('participants')">Approved</div>
@@ -251,6 +254,7 @@ function openActivation(id, name, slug) {
   document.getElementById('detail-view').style.display = 'block';
   document.getElementById('detail-title').textContent = name;
   document.getElementById('detail-url').textContent = window.location.origin + '/activations/' + slug;
+  document.getElementById('master-qr-link').href = '/activations/' + slug + '/qr';
   loadParticipants();
 }
 

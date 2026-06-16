@@ -6,6 +6,7 @@ const jwt = require('jsonwebtoken');
 const path = require('path');
 const multer = require('multer');
 const { uploadImage } = require('../lib/cloudinary');
+const QRCode = require('qrcode');
 const upload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 10 * 1024 * 1024 } });
 
 // Simple in-memory rate limiter: max 30 votes per IP per 10 minutes
@@ -191,7 +192,8 @@ router.get('/:activationSlug/qr', async (req, res) => {
   const baseUrl = process.env.RAILWAY_BASE_URL
     || (process.env.RAILWAY_PUBLIC_DOMAIN ? `https://${process.env.RAILWAY_PUBLIC_DOMAIN}` : '');
   const landingUrl = `${baseUrl}/activations/${activation.slug}`;
-  res.send(renderMasterQRPage(activation, landingUrl));
+  const qrDataUrl = await QRCode.toDataURL(landingUrl, { width: 320, margin: 2, color: { dark: '#0a0a0a', light: '#f5f0eb' } });
+  res.send(renderMasterQRPage(activation, landingUrl, qrDataUrl));
 });
 
 router.get('/:activationSlug/:participantSlug/profile', async (req, res) => {
@@ -202,7 +204,8 @@ router.get('/:activationSlug/:participantSlug/profile', async (req, res) => {
   const baseUrl = process.env.RAILWAY_BASE_URL
     || (process.env.RAILWAY_PUBLIC_DOMAIN ? `https://${process.env.RAILWAY_PUBLIC_DOMAIN}` : '');
   const voteUrl = `${baseUrl}/activations/${activation.slug}/${participant.slug}`;
-  res.send(renderProfilePage(activation, participant, voteUrl));
+  const qrDataUrl = await QRCode.toDataURL(voteUrl, { width: 280, margin: 2, color: { dark: '#0a0a0a', light: '#f5f0eb' } });
+  res.send(renderProfilePage(activation, participant, voteUrl, qrDataUrl));
 });
 
 router.get('/:activationSlug/:participantSlug', async (req, res) => {
@@ -675,8 +678,8 @@ const fp = getFingerprint();
 </html>`;
 }
 
-function renderMasterQRPage(activation, landingUrl) {
-  const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=320x320&margin=20&color=0a0a0a&bgcolor=f5f0eb&data=${encodeURIComponent(landingUrl)}`;
+function renderMasterQRPage(activation, landingUrl, qrDataUrl) {
+  const qrUrl = qrDataUrl;
   return `<!DOCTYPE html>
 <html lang="en">
 <head>
@@ -734,8 +737,8 @@ footer{font-size:11px;color:#2a2a2a;padding:20px}
 </html>`;
 }
 
-function renderProfilePage(activation, participant, voteUrl) {
-  const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=280x280&margin=16&color=0a0a0a&bgcolor=f5f0eb&data=${encodeURIComponent(voteUrl)}`;
+function renderProfilePage(activation, participant, voteUrl, qrDataUrl) {
+  const qrUrl = qrDataUrl;
   return `<!DOCTYPE html>
 <html lang="en">
 <head>

@@ -39,9 +39,23 @@ router.post('/admin/activations/create', requireActivationsAdmin, async (req, re
   }
 });
 
-router.post('/admin/activations/:id/participants', requireActivationsAdmin, async (req, res) => {
+router.post('/admin/upload-image', requireActivationsAdmin, upload.single('image'), async (req, res) => {
   try {
-    const { name, slug, description, image_url } = req.body;
+    if (!req.file) return res.status(400).json({ error: 'No file provided' });
+    const result = await uploadImage(req.file.buffer);
+    res.json({ url: result.secure_url });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+router.post('/admin/activations/:id/participants', requireActivationsAdmin, upload.single('image'), async (req, res) => {
+  try {
+    let { name, slug, description, image_url } = req.body;
+    if (req.file) {
+      const uploaded = await uploadImage(req.file.buffer);
+      image_url = uploaded.secure_url;
+    }
     const participant = await db.createParticipant({
       activation_id: req.params.id,
       name, slug: slug.toLowerCase().replace(/\s+/g, '-'),

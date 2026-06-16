@@ -3,7 +3,6 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<link rel="stylesheet" href="/css/brand.css">
 <title>Check-In — Silver Glider</title>
 <script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
 <style>
@@ -19,11 +18,11 @@ header h1{font-size:18px;font-weight:600;letter-spacing:.05em}
 input,select{width:100%;background:#1a1a1a;border:1px solid #2a2a2a;color:#f0f0f0;padding:14px 16px;border-radius:8px;font-size:16px;margin-bottom:12px;outline:none;-webkit-appearance:none}
 input:focus,select:focus{border-color:#444}
 input::placeholder{color:#444}
-button.primary{width:100%;background:#1CC5BE;color:#0a0a0a;border:none;padding:14px;border-radius:8px;font-size:16px;font-weight:600;cursor:pointer}
+button.primary{width:100%;background:#f0f0f0;color:#0a0a0a;border:none;padding:14px;border-radius:8px;font-size:16px;font-weight:600;cursor:pointer}
 #error-msg{color:#ff4444;font-size:14px;margin-top:8px;text-align:center}
 .tabs{display:flex;gap:8px;margin-bottom:16px}
 .tab{flex:1;padding:12px;border-radius:8px;border:1px solid #222;background:#111;color:#666;font-size:14px;font-weight:600;cursor:pointer;text-align:center}
-.tab.active{background:#1CC5BE;color:#0a0a0a;border-color:#1CC5BE}
+.tab.active{background:#f0f0f0;color:#0a0a0a;border-color:#f0f0f0}
 #scanner-section,#search-section{display:none}
 #scanner-section.active,#search-section.active{display:block}
 #qr-reader{border-radius:12px;overflow:hidden;margin-bottom:16px}
@@ -56,7 +55,7 @@ button.primary{width:100%;background:#1CC5BE;color:#0a0a0a;border:none;padding:1
 </head>
 <body>
 <header>
-<a href="/" class="sg-logo"><img src="/logo.png" alt="Silver Glider"><div class="sg-logo-text"><span class="sg-logo-name">Silver Glider</span><span class="sg-logo-sub">Tickets</span></div></a>
+<h1>⬡ Silver Glider</h1>
 <div style="display:flex;align-items:center;gap:8px">
 <span id="staff-name" style="font-size:13px;color:#666"></span>
 <button id="logout-btn" onclick="logout()">Log out</button>

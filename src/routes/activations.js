@@ -191,8 +191,10 @@ function renderSignupPage(activation) {
 <title>Join ${activation.name}</title>
 <style>
 *{box-sizing:border-box;margin:0;padding:0}
-body{background:#0a0a0a;color:#f0f0f0;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;min-height:100vh}
-header{padding:24px;text-align:center;border-bottom:1px solid #1a1a1a}
+body{color:#f0f0f0;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;min-height:100vh;background:#0a0a0a url('/thrift-bg.jpg') center/cover fixed}
+body::before{content:'';position:fixed;inset:0;background:rgba(0,0,0,.78);z-index:0}
+header,.container,#success{position:relative;z-index:1}
+header{padding:24px;text-align:center;border-bottom:1px solid rgba(255,255,255,.08)}
 header p{font-size:12px;letter-spacing:.15em;color:#555;margin-bottom:8px}
 header h1{font-size:22px;font-weight:700}
 header .sub{font-size:14px;color:#666;margin-top:6px}

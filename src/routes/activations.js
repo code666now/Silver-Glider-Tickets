@@ -67,9 +67,13 @@ router.post('/admin/activations/:id/participants', requireActivationsAdmin, uplo
   }
 });
 
-router.put('/admin/activations/participants/:id', requireActivationsAdmin, async (req, res) => {
+router.put('/admin/activations/participants/:id', requireActivationsAdmin, upload.single('image'), async (req, res) => {
   try {
-    const { name, slug, description, image_url } = req.body;
+    let { name, slug, description, image_url } = req.body;
+    if (req.file) {
+      const uploaded = await uploadImage(req.file.buffer);
+      image_url = uploaded.secure_url;
+    }
     const participant = await db.updateParticipant(req.params.id, { name, slug, description, image_url });
     res.json(participant);
   } catch (err) {

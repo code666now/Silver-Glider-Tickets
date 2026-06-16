@@ -225,11 +225,29 @@ textarea{resize:vertical;min-height:80px}
 </head>
 <body>
 <header>
-  <a href="/" class="sg-logo"><img src="/logo.png" alt="Silver Glider"><div><span class="sg-logo-name">Silver Glider</span><span class="sg-logo-sub">Tickets</span></div></a>
+  <a href="/" class="sg-logo"><img src="/logo.png" alt="Silver Glider"><div><span class="sg-logo-name">Silver Glider</span><span class="sg-logo-sub">Music Discovery</span></div></a>
   <h1>${activation.name}</h1>
-  <p class="sub">Register your booth</p>
+  <p class="sub">Best Booth Award — Register to compete</p>
 </header>
 <div class="container">
+  <div style="background:#111;border:1px solid #1a1a1a;border-radius:12px;padding:20px;margin-bottom:24px">
+    <p style="font-size:13px;color:#1CC5BE;font-weight:700;letter-spacing:.08em;text-transform:uppercase;margin-bottom:10px">The Prize</p>
+    <div style="display:flex;flex-direction:column;gap:8px">
+      <div style="display:flex;align-items:center;gap:12px;font-size:14px">
+        <span style="font-size:20px">🥇</span>
+        <div><span style="color:#f0f0f0;font-weight:600">1st Place</span> <span style="color:#666">— 2 tickets to The Fox Theatre</span></div>
+      </div>
+      <div style="display:flex;align-items:center;gap:12px;font-size:14px">
+        <span style="font-size:20px">🥈</span>
+        <div><span style="color:#f0f0f0;font-weight:600">2nd Place</span> <span style="color:#666">— 2 tickets to The Independent</span></div>
+      </div>
+      <div style="display:flex;align-items:center;gap:12px;font-size:14px">
+        <span style="font-size:20px">🥉</span>
+        <div><span style="color:#f0f0f0;font-weight:600">3rd Place</span> <span style="color:#666">— 2 tickets to The Make Out Room</span></div>
+      </div>
+    </div>
+    <p style="font-size:12px;color:#444;margin-top:12px">Festival attendees vote for their favorite booth. Top vote-getter wins. Silver Glider is a music discovery service — we drop concert picks straight to your phone.</p>
+  </div>
   <div id="form-view">
     <label>Booth name *</label>
     <input type="text" id="name" placeholder="e.g. Vintage Threads" maxlength="100">
@@ -392,7 +410,11 @@ footer{text-align:center;padding:32px;font-size:12px;color:#333}
   ${activation.description ? `<p class="desc">${activation.description}</p>` : ''}
 </header>
 <div class="container">
-  <p style="font-size:13px;color:#555;margin-bottom:20px">Tap a booth to vote</p>
+  <div style="background:#111;border:1px solid #1a1a1a;border-radius:12px;padding:16px 20px;margin-bottom:20px">
+    <p style="font-size:12px;color:#1CC5BE;font-weight:700;letter-spacing:.08em;text-transform:uppercase;margin-bottom:8px">Prizes</p>
+    <p style="font-size:13px;color:#aaa;line-height:1.6">🥇 1st — 2 tickets to <strong style="color:#f0f0f0">The Fox Theatre</strong> &nbsp; 🥈 2nd — <strong style="color:#f0f0f0">The Independent</strong> &nbsp; 🥉 3rd — <strong style="color:#f0f0f0">The Make Out Room</strong></p>
+    <p style="font-size:12px;color:#444;margin-top:8px">Tap a booth and vote. Most votes wins. Powered by Silver Glider music discovery.</p>
+  </div>
   ${cards || '<p style="color:#444;text-align:center;padding:40px 0">No participants yet.</p>'}
 </div>
 <footer>Silver Glider</footer>
@@ -453,7 +475,8 @@ footer{text-align:center;padding:32px;font-size:12px;color:#333}
   ${participant.description ? `<p class="desc">${participant.description}</p>` : ''}
 
   <div id="vote-section">
-    <p class="question">Best Booth Awards — How was this booth?</p>
+    <p class="question">Best Booth Award — cast your vote</p>
+    <p style="font-size:12px;color:#444;margin-bottom:20px;margin-top:-8px">Top booth wins 2 concert tickets. Powered by Silver Glider.</p>
     <div class="vote-buttons">
       <button class="vote-btn" onclick="castVote('rules')">🔥 This Booth Rules!</button>
       <button class="vote-btn" onclick="castVote('hell_yeah')">🤘 Hell Yeah</button>

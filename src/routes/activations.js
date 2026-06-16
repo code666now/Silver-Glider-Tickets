@@ -479,84 +479,99 @@ function renderVotingPage(activation, participant) {
 *{box-sizing:border-box;margin:0;padding:0}
 body{color:#f0f0f0;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;min-height:100vh;background:#0a0a0a url('/voting-bg.jpg') center/cover fixed}
 body::before{content:'';position:fixed;inset:0;background:rgba(0,0,0,.82);z-index:0}
-header,.container,footer{position:relative;z-index:1}
-header{padding:16px 24px;border-bottom:1px solid rgba(255,255,255,.08);display:flex;align-items:center;gap:12px}
+header,.hero,.container,footer{position:relative;z-index:1}
+header{padding:14px 20px;display:flex;align-items:center;gap:10px}
 header a{color:#555;text-decoration:none;font-size:13px}
-header span{color:#333}
-.container{max-width:480px;margin:0 auto;padding:32px 24px;text-align:center}
-.participant-img{width:120px;height:120px;border-radius:16px;object-fit:cover;margin:0 auto 20px}
-.placeholder-img{width:120px;height:120px;border-radius:16px;background:#1a1a1a;display:flex;align-items:center;justify-content:center;font-size:48px;font-weight:700;color:#333;margin:0 auto 20px}
-h1{font-size:24px;font-weight:700;margin-bottom:8px}
-.desc{font-size:15px;color:#666;margin-bottom:32px}
-.question{font-size:13px;color:#555;letter-spacing:.05em;text-transform:uppercase;margin-bottom:16px}
-.vote-buttons{display:flex;flex-direction:column;gap:12px;margin-bottom:32px}
-.vote-btn{background:#111;border:1px solid #222;color:#f0f0f0;padding:16px;border-radius:12px;font-size:18px;cursor:pointer;transition:border-color .2s,background .2s;width:100%}
-.vote-btn:hover{border-color:#444;background:#1a1a1a}
-.vote-btn.selected{border-color:#1CC5BE;background:#1a1a1a}
-#thank-you{display:none;padding:32px 0}
-#thank-you h2{font-size:22px;font-weight:700;margin-bottom:8px}
-#thank-you p{font-size:15px;color:#666;margin-bottom:32px}
-.optin-box{background:#111;border:1px solid #222;border-radius:12px;padding:24px;text-align:left}
+header span{color:#2a2a2a}
+.hero{width:100%;max-width:480px;margin:0 auto;aspect-ratio:4/5;position:relative;overflow:hidden}
+.hero img{width:100%;height:100%;object-fit:cover;display:block}
+.hero-placeholder{width:100%;height:100%;background:#1a1a1a;display:flex;align-items:center;justify-content:center;font-size:80px;font-weight:700;color:#333}
+.hero-overlay{position:absolute;bottom:0;left:0;right:0;padding:24px 20px 20px;background:linear-gradient(transparent,rgba(0,0,0,.85))}
+.hero-overlay h1{font-size:26px;font-weight:700;margin-bottom:4px}
+.hero-overlay .desc{font-size:14px;color:rgba(255,255,255,.55)}
+.container{max-width:480px;margin:0 auto;padding:24px 20px}
+.vote-label{font-size:11px;color:#555;letter-spacing:.08em;text-transform:uppercase;margin-bottom:14px;text-align:center}
+.vote-buttons{display:flex;flex-direction:column;gap:10px;margin-bottom:8px}
+.vote-btn-primary{background:#1CC5BE;border:none;color:#0a0a0a;padding:18px;border-radius:14px;font-size:19px;font-weight:700;cursor:pointer;width:100%;transition:opacity .15s}
+.vote-btn-primary:hover{opacity:.88}
+.vote-btn-secondary{background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.1);color:#f0f0f0;padding:15px;border-radius:14px;font-size:17px;cursor:pointer;width:100%;transition:background .15s}
+.vote-btn-secondary:hover{background:rgba(255,255,255,.1)}
+.vote-hint{font-size:12px;color:#333;text-align:center;margin-top:6px;margin-bottom:0}
+#duplicate-msg{font-size:13px;color:#888;text-align:center;margin-top:12px;display:none}
+#thank-you{display:none}
+.share-block{background:rgba(28,197,190,.08);border:1px solid rgba(28,197,190,.2);border-radius:14px;padding:20px;margin-bottom:16px;text-align:center}
+.share-block h2{font-size:20px;font-weight:700;margin-bottom:6px}
+.share-block p{font-size:14px;color:#888;margin-bottom:16px}
+.share-btn{display:inline-flex;align-items:center;gap:8px;background:#1CC5BE;color:#0a0a0a;border:none;padding:12px 24px;border-radius:10px;font-size:14px;font-weight:700;cursor:pointer}
+.optin-box{background:#111;border:1px solid #222;border-radius:14px;padding:22px;margin-bottom:14px}
 .optin-box h3{font-size:15px;font-weight:600;margin-bottom:4px}
 .optin-box p{font-size:13px;color:#666;margin-bottom:16px}
 .optin-row{display:flex;gap:8px}
-.optin-row input{flex:1;background:#1a1a1a;border:1px solid #2a2a2a;color:#f0f0f0;padding:12px 14px;border-radius:8px;font-size:15px;outline:none}
+.optin-row input{flex:1;background:#1a1a1a;border:1px solid #2a2a2a;color:#f0f0f0;padding:12px 14px;border-radius:8px;font-size:16px;outline:none;-webkit-appearance:none}
 .optin-row input::placeholder{color:#444}
 .optin-row input:focus{border-color:#444}
-.optin-row button{background:#1CC5BE;color:#0a0a0a;border:none;padding:12px 20px;border-radius:8px;font-size:15px;font-weight:600;cursor:pointer}
-#optin-done{display:none;font-size:13px;color:#4caf50;margin-top:8px}
-#duplicate-msg{display:none;font-size:13px;color:#888;margin-top:8px}
-footer{text-align:center;padding:32px;font-size:12px;color:#333}
+.optin-row button{background:#1CC5BE;color:#0a0a0a;border:none;padding:12px 18px;border-radius:8px;font-size:15px;font-weight:700;cursor:pointer}
+#optin-done{display:none;margin-top:12px}
+footer{text-align:center;padding:28px;font-size:12px}
+footer a{color:#1CC5BE;text-decoration:none;font-weight:600}
+footer span{color:#333}
 </style>
 </head>
 <body>
 <header>
-  <a href="/activations/${activation.slug}">&larr; Back</a>
+  <a href="/activations/${activation.slug}">&larr; All Booths</a>
   <span>/</span>
-  <span style="color:#666;font-size:13px">${activation.name}</span>
+  <span style="color:#444;font-size:13px">${activation.name}</span>
 </header>
-<div class="container">
-  ${participant.image_url
-    ? `<img class="participant-img" src="${participant.image_url}" alt="${participant.name}">`
-    : `<div class="placeholder-img">${participant.name[0]}</div>`}
-  <h1>${participant.name}</h1>
-  ${participant.description ? `<p class="desc">${participant.description}</p>` : ''}
 
+<div class="hero">
+  ${participant.image_url
+    ? `<img src="${participant.image_url}" alt="${participant.name}">`
+    : `<div class="hero-placeholder">${participant.name[0]}</div>`}
+  <div class="hero-overlay">
+    <h1>${participant.name}</h1>
+    ${participant.description ? `<p class="desc">${participant.description}</p>` : ''}
+  </div>
+</div>
+
+<div class="container">
   <div id="vote-section">
-    <p class="question">Best Booth Award — cast your vote</p>
-    <p style="font-size:12px;color:#444;margin-bottom:20px;margin-top:-8px">Top booth wins 2 concert tickets. Powered by Silver Glider.</p>
+    <p class="vote-label">Best Booth Award — cast your vote</p>
     <div class="vote-buttons">
-      <button class="vote-btn" onclick="castVote('rules')">🔥 This Booth Rules!</button>
-      <button class="vote-btn" onclick="castVote('hell_yeah')">🤘 Hell Yeah</button>
-      <button class="vote-btn" onclick="castVote('no_thanks')">👎 No Thanks</button>
+      <button class="vote-btn-primary" onclick="castVote('rules')">🔥 This Booth Rules!</button>
+      <button class="vote-btn-secondary" onclick="castVote('hell_yeah')">🤘 Hell Yeah</button>
+      <button class="vote-btn-secondary" onclick="castVote('no_thanks')">😬 Not My Vibe</button>
     </div>
+    <p class="vote-hint">Top booth wins 2 concert tickets.</p>
     <div id="duplicate-msg">You already voted for this booth.</div>
   </div>
 
   <div id="thank-you">
-    <h2>Vote counted.</h2>
-    <p style="font-size:15px;color:#666;margin-bottom:28px">Thanks for sharing your take.</p>
+    <div class="share-block">
+      <h2>Vote counted.</h2>
+      <p>Help ${participant.name} win — share this page.</p>
+      <button class="share-btn" onclick="shareVote()">Share this booth</button>
+    </div>
+
     <div class="optin-box">
       <h3>Get 3 SF shows every Friday by text.</h3>
-      <p>Silver Glider is a music discovery service. Every Friday we send 3 concerts worth going to this week — straight to your phone. Free.</p>
+      <p>Every Friday we send 3 concerts worth going to this week — straight to your phone. Free.</p>
       <div class="optin-row">
-        <input type="tel" id="phone-input" placeholder="Your phone number">
+        <input type="tel" id="phone-input" placeholder="Your phone number" inputmode="tel">
         <button onclick="submitOptin()">Join</button>
       </div>
-      <div id="optin-done" style="display:none">
-        <p style="font-size:14px;color:#1CC5BE;font-weight:700;margin-top:12px">You're on The Line.</p>
+      <div id="optin-done">
+        <p style="font-size:14px;color:#1CC5BE;font-weight:700">You're on The Line.</p>
         <p style="font-size:13px;color:#555;margin-top:4px">First drop hits Friday. See you there.</p>
       </div>
     </div>
-    <div id="instagram-follow" style="margin-top:20px;text-align:center">
-      <a href="https://instagram.com/silverglidertix" target="_blank" rel="noopener noreferrer" style="display:inline-flex;align-items:center;gap:8px;color:#555;font-size:13px;text-decoration:none;border:1px solid #222;border-radius:8px;padding:10px 16px;transition:border-color .2s" onmouseover="this.style.borderColor='#444'" onmouseout="this.style.borderColor='#222'">
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="2" width="20" height="20" rx="5" ry="5"/><circle cx="12" cy="12" r="4"/><circle cx="17.5" cy="6.5" r="1.5" fill="currentColor" stroke="none"/></svg>
-        @silverglidertix
-      </a>
-    </div>
   </div>
 </div>
-<footer>Powered by Silver Glider</footer>
+
+<footer>
+  <a href="https://instagram.com/silverglidertix" target="_blank" rel="noopener noreferrer">@silverglidertix</a>
+  <span> &nbsp;·&nbsp; Powered by Silver Glider</span>
+</footer>
 <script>
 function getFingerprint() {
   let fp = localStorage.getItem('sg_fp');
@@ -581,6 +596,18 @@ async function castVote(vote) {
   }
   document.getElementById('vote-section').style.display = 'none';
   document.getElementById('thank-you').style.display = 'block';
+}
+
+function shareVote() {
+  const url = window.location.href;
+  if (navigator.share) {
+    navigator.share({ title: '${participant.name} — Best Booth Award', text: 'Vote for ${participant.name} at ${activation.name}', url });
+  } else {
+    navigator.clipboard.writeText(url);
+    const btn = document.querySelector('.share-btn');
+    btn.textContent = 'Link copied!';
+    setTimeout(() => { btn.innerHTML = 'Share this booth'; }, 2000);
+  }
 }
 
 async function submitOptin() {

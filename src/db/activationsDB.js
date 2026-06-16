@@ -28,7 +28,7 @@ async function updateActivation(id, { name, description, active }) {
 
 async function getParticipantsByActivation(activation_id) {
   const r = await pool.query(
-    'SELECT * FROM sg_participants WHERE activation_id = $1 ORDER BY name ASC',
+    "SELECT * FROM sg_participants WHERE activation_id = $1 AND status = 'approved' ORDER BY name ASC",
     [activation_id]
   );
   return r.rows;
@@ -42,11 +42,29 @@ async function getParticipantBySlug(activation_id, slug) {
   return r.rows[0];
 }
 
-async function createParticipant({ activation_id, name, slug, description, image_url }) {
+async function createParticipant({ activation_id, name, slug, description, image_url, status = 'approved', contact_email, contact_phone }) {
   const r = await pool.query(
-    'INSERT INTO sg_participants (activation_id, name, slug, description, image_url) VALUES ($1,$2,$3,$4,$5) RETURNING *',
-    [activation_id, name, slug, description, image_url]
+    'INSERT INTO sg_participants (activation_id, name, slug, description, image_url, status, contact_email, contact_phone) VALUES ($1,$2,$3,$4,$5,$6,$7,$8) RETURNING *',
+    [activation_id, name, slug, description, image_url, status, contact_email, contact_phone]
   );
+  return r.rows[0];
+}
+
+async function getPendingParticipants(activation_id) {
+  const r = await pool.query(
+    "SELECT * FROM sg_participants WHERE activation_id = $1 AND status = 'pending' ORDER BY created_at ASC",
+    [activation_id]
+  );
+  return r.rows;
+}
+
+async function approveParticipant(id) {
+  const r = await pool.query("UPDATE sg_participants SET status='approved' WHERE id=$1 RETURNING *", [id]);
+  return r.rows[0];
+}
+
+async function rejectParticipant(id) {
+  const r = await pool.query("DELETE FROM sg_participants WHERE id=$1 RETURNING *", [id]);
   return r.rows[0];
 }
 
@@ -107,5 +125,6 @@ async function getOptinsByActivation(activation_id) {
 module.exports = {
   getActivationBySlug, getAllActivations, createActivation, updateActivation,
   getParticipantsByActivation, getParticipantBySlug, createParticipant, updateParticipant,
+  getPendingParticipants, approveParticipant, rejectParticipant,
   castVote, getResultsByActivation, createOptin, getOptinsByActivation
 };

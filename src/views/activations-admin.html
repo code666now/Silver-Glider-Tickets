@@ -85,7 +85,8 @@ tbody td{padding:10px 12px;border-bottom:1px solid #161616}
     <p id="detail-url" style="font-size:12px;color:#555;font-family:monospace;margin-bottom:24px"></p>
 
     <div class="tabs">
-      <div class="tab active" onclick="showTab('participants')">Participants</div>
+      <div class="tab active" onclick="showTab('participants')">Approved</div>
+      <div class="tab" onclick="showTab('pending')">Pending <span id="pending-count" style="background:#ff4444;color:#fff;font-size:10px;padding:1px 6px;border-radius:10px;margin-left:4px;display:none"></span></div>
       <div class="tab" onclick="showTab('results')">Results</div>
       <div class="tab" onclick="showTab('optins')">SMS Opt-ins</div>
     </div>
@@ -103,6 +104,12 @@ tbody td{padding:10px 12px;border-bottom:1px solid #161616}
         <div id="p-msg" style="font-size:13px;color:#4caf50;margin-top:8px;min-height:20px"></div>
       </div>
       <div class="card" id="participants-list">
+        <p style="color:#444;font-size:14px">Loading...</p>
+      </div>
+    </div>
+
+    <div id="tab-pending" style="display:none">
+      <div class="card" id="pending-list">
         <p style="color:#444;font-size:14px">Loading...</p>
       </div>
     </div>
@@ -210,14 +217,53 @@ function showList() {
 }
 
 function showTab(tab) {
-  ['participants','results','optins'].forEach(t => {
+  ['participants','pending','results','optins'].forEach(t => {
     document.getElementById('tab-' + t).style.display = t === tab ? 'block' : 'none';
   });
   document.querySelectorAll('.tab').forEach((el, i) => {
-    el.classList.toggle('active', ['participants','results','optins'][i] === tab);
+    el.classList.toggle('active', ['participants','pending','results','optins'][i] === tab);
   });
   if (tab === 'results') loadResults();
   if (tab === 'optins') loadOptins();
+  if (tab === 'pending') loadPending();
+}
+
+async function loadPending() {
+  const pending = await api(`/activations/admin/activations/${currentActivation.id}/pending`);
+  const el = document.getElementById('pending-list');
+  const countEl = document.getElementById('pending-count');
+  if (!pending || !pending.length) {
+    el.innerHTML = '<p style="color:#444;font-size:14px">No pending submissions.</p>';
+    countEl.style.display = 'none';
+    return;
+  }
+  countEl.textContent = pending.length;
+  countEl.style.display = 'inline';
+  el.innerHTML = pending.map(p => `
+    <div class="participant-row">
+      ${p.image_url ? `<img src="${p.image_url}" alt="${p.name}" style="width:64px;height:64px;border-radius:8px;object-fit:cover">` : `<div class="p-avatar" style="width:64px;height:64px">${p.name[0]}</div>`}
+      <div class="participant-info" style="flex:1">
+        <div class="name">${p.name}</div>
+        ${p.description ? `<div style="font-size:12px;color:#666;margin-top:2px">${p.description}</div>` : ''}
+        ${p.contact_email ? `<div style="font-size:11px;color:#444;margin-top:2px">${p.contact_email}</div>` : ''}
+      </div>
+      <div style="display:flex;gap:8px">
+        <button class="btn-sm" style="color:#4caf50;border-color:#1a3a1a" onclick="approveParticipant(${p.id})">Approve</button>
+        <button class="btn-danger" onclick="rejectParticipant(${p.id})">Reject</button>
+      </div>
+    </div>
+  `).join('');
+}
+
+async function approveParticipant(id) {
+  await api(`/activations/admin/activations/participants/${id}/approve`, 'POST');
+  loadPending();
+  loadParticipants();
+}
+
+async function rejectParticipant(id) {
+  await api(`/activations/admin/activations/participants/${id}/reject`, 'POST');
+  loadPending();
 }
 
 async function loadParticipants() {

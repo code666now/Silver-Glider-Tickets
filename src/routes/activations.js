@@ -89,7 +89,7 @@ router.post('/:activationSlug/:participantSlug/optin', async (req, res) => {
   }
 });
 
-router.get('/admin/activations', requireActivationsAdmin, async (req, res) => {
+router.get('/admin/activations', (req, res) => {
   res.sendFile(path.resolve(__dirname, '../views/activations-admin.html'));
 });
 

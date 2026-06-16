@@ -443,7 +443,7 @@ footer{text-align:center;padding:32px;font-size:12px;color:#333;border-top:1px s
 <div class="container">
   ${cards || '<p class="empty">No booths yet.</p>'}
 </div>
-<footer>Powered by Silver Glider music discovery</footer>
+<footer>Powered by Silver Glider</footer>
 </body>
 </html>`;
 }
@@ -536,7 +536,7 @@ footer{text-align:center;padding:32px;font-size:12px;color:#333}
     </div>
   </div>
 </div>
-<footer>Powered by Silver Glider music discovery</footer>
+<footer>Powered by Silver Glider</footer>
 <script>
 function getFingerprint() {
   let fp = localStorage.getItem('sg_fp');

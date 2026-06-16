@@ -199,7 +199,7 @@ header h1{font-size:26px;font-weight:700;margin-top:12px}
 header .sub{font-size:14px;color:#888;margin-top:6px}
 .container{max-width:480px;margin:0 auto;padding:24px 16px 48px}
 label{display:block;font-size:11px;color:#555;text-transform:uppercase;letter-spacing:.06em;margin-bottom:6px;margin-top:20px}
-input,textarea{width:100%;background:rgba(17,17,17,.9);border:1px solid #2a2a2a;color:#f0f0f0;padding:14px;border-radius:10px;font-size:16px;outline:none;font-family:inherit;-webkit-appearance:none}
+input,textarea{width:100%;background:rgba(0,0,0,.45);border:1px solid rgba(255,255,255,.12);color:#f0f0f0;padding:14px;border-radius:10px;font-size:16px;outline:none;font-family:inherit;-webkit-appearance:none;backdrop-filter:blur(4px)}
 input:focus,textarea:focus{border-color:#444}
 input::placeholder,textarea::placeholder{color:#333}
 textarea{resize:vertical;min-height:80px}

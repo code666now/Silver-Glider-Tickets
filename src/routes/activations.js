@@ -488,15 +488,15 @@ header span{color:#2a2a2a}
 .hero-placeholder{width:100%;height:100%;background:#1a1a1a;display:flex;align-items:center;justify-content:center;font-size:80px;font-weight:700;color:#333}
 .hero-overlay{position:absolute;bottom:0;left:0;right:0;padding:24px 20px 20px;background:linear-gradient(transparent,rgba(0,0,0,.88))}
 .hero-overlay h1{font-size:26px;font-weight:700;margin-bottom:4px}
-.hero-overlay .desc{font-size:14px;color:rgba(255,255,255,.55)}
+.hero-overlay .desc{font-size:15px;color:rgba(255,255,255,.8);font-weight:500}
 .container{max-width:480px;margin:0 auto;padding:20px 16px;padding-bottom:max(24px,env(safe-area-inset-bottom))}
-.vote-label{font-size:11px;color:#555;letter-spacing:.08em;text-transform:uppercase;margin-bottom:14px;text-align:center}
+.vote-label{font-size:13px;color:#ccc;letter-spacing:.06em;text-transform:uppercase;margin-bottom:14px;text-align:center;font-weight:600}
 .vote-buttons{display:flex;flex-direction:column;gap:10px;margin-bottom:8px}
 .vote-btn-primary{background:#1CC5BE;border:none;color:#0a0a0a;padding:18px;border-radius:14px;font-size:19px;font-weight:700;cursor:pointer;width:100%;min-height:58px;transition:opacity .15s;-webkit-appearance:none}
 .vote-btn-primary:active{opacity:.8}
 .vote-btn-secondary{background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.1);color:#f0f0f0;padding:15px;border-radius:14px;font-size:17px;cursor:pointer;width:100%;min-height:52px;transition:background .15s;-webkit-appearance:none}
 .vote-btn-secondary:active{background:rgba(255,255,255,.12)}
-.vote-hint{font-size:12px;color:#333;text-align:center;margin-top:6px}
+.vote-hint{font-size:13px;color:#aaa;text-align:center;margin-top:8px;font-weight:500}
 #duplicate-msg{font-size:13px;color:#888;text-align:center;margin-top:12px;display:none}
 #thank-you{display:none}
 .share-block{background:rgba(28,197,190,.08);border:1px solid rgba(28,197,190,.2);border-radius:14px;padding:20px;margin-bottom:14px;text-align:center}
@@ -571,7 +571,10 @@ footer span{color:#333}
 </div>
 
 <footer>
-  <a href="https://instagram.com/silverglidertix" target="_blank" rel="noopener noreferrer">@silverglidertix</a>
+  <a href="https://instagram.com/silverglidertix" target="_blank" rel="noopener noreferrer" style="display:inline-flex;align-items:center;gap:6px;color:#1CC5BE;text-decoration:none;font-weight:600">
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="2" width="20" height="20" rx="5" ry="5"/><circle cx="12" cy="12" r="4"/><circle cx="17.5" cy="6.5" r="1.5" fill="currentColor" stroke="none"/></svg>
+    @silverglidertix
+  </a>
   <span> &nbsp;·&nbsp; Powered by Silver Glider</span>
 </footer>
 <script>

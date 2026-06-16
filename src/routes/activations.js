@@ -192,37 +192,34 @@ function renderSignupPage(activation) {
 <style>
 *{box-sizing:border-box;margin:0;padding:0}
 body{color:#f0f0f0;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;min-height:100vh;background:#0a0a0a url('/thrift-bg.jpg') center/cover fixed}
-body::before{content:'';position:fixed;inset:0;background:rgba(0,0,0,.78);z-index:0}
+body::before{content:'';position:fixed;inset:0;background:rgba(0,0,0,.82);z-index:0}
 header,.container,#success{position:relative;z-index:1}
-header{padding:24px;text-align:center;border-bottom:1px solid rgba(255,255,255,.08)}
-header p{font-size:12px;letter-spacing:.15em;color:#555;margin-bottom:8px}
-header h1{font-size:22px;font-weight:700}
-header .sub{font-size:14px;color:#666;margin-top:6px}
-.container{max-width:480px;margin:0 auto;padding:32px 24px}
-label{display:block;font-size:12px;color:#555;text-transform:uppercase;letter-spacing:.05em;margin-bottom:6px;margin-top:20px}
-input,textarea{width:100%;background:#111;border:1px solid #222;color:#f0f0f0;padding:12px 14px;border-radius:10px;font-size:15px;outline:none;font-family:inherit}
+header{padding:20px 16px;text-align:center;border-bottom:1px solid rgba(255,255,255,.08)}
+header h1{font-size:26px;font-weight:700;margin-top:12px}
+header .sub{font-size:14px;color:#888;margin-top:6px}
+.container{max-width:480px;margin:0 auto;padding:24px 16px 48px}
+label{display:block;font-size:11px;color:#555;text-transform:uppercase;letter-spacing:.06em;margin-bottom:6px;margin-top:20px}
+input,textarea{width:100%;background:rgba(17,17,17,.9);border:1px solid #2a2a2a;color:#f0f0f0;padding:14px;border-radius:10px;font-size:16px;outline:none;font-family:inherit;-webkit-appearance:none}
 input:focus,textarea:focus{border-color:#444}
 input::placeholder,textarea::placeholder{color:#333}
 textarea{resize:vertical;min-height:80px}
-.upload-area{border:2px dashed #222;border-radius:12px;padding:32px;text-align:center;cursor:pointer;transition:border-color .2s;position:relative;margin-top:6px}
-.upload-area:hover{border-color:#444}
-.upload-area.has-image{border-style:solid;border-color:#333;padding:0;overflow:hidden}
-.upload-area img{width:100%;height:200px;object-fit:cover;border-radius:10px;display:block}
-.upload-area .upload-label{font-size:14px;color:#555;margin-top:8px}
-.upload-area .upload-icon{font-size:32px;margin-bottom:8px}
 .upload-area input[type=file]{position:absolute;inset:0;opacity:0;cursor:pointer;width:100%;height:100%}
-.btn{width:100%;background:#1CC5BE;color:#0a0a0a;border:none;padding:16px;border-radius:10px;font-size:16px;font-weight:700;cursor:pointer;margin-top:24px}
+.btn{width:100%;background:#1CC5BE;color:#0a0a0a;border:none;padding:18px;border-radius:12px;font-size:17px;font-weight:700;cursor:pointer;margin-top:28px;-webkit-appearance:none}
 .btn:disabled{opacity:.5;cursor:not-allowed}
-#success{display:none;text-align:center;padding:40px 0}
-#success h2{font-size:22px;font-weight:700;margin-bottom:8px}
+#success{display:none;text-align:center;padding:48px 0}
+#success h2{font-size:24px;font-weight:700;margin-bottom:8px}
 #success p{font-size:15px;color:#666}
-#error-msg{color:#ff4444;font-size:13px;margin-top:8px;text-align:center}
+#error-msg{color:#ff4444;font-size:13px;margin-top:10px;text-align:center}
 .progress{height:4px;background:#222;border-radius:2px;margin-top:16px;display:none}
 .progress-bar{height:100%;background:#1CC5BE;border-radius:2px;width:0%;transition:width .3s}
-.sg-logo{display:inline-flex;align-items:center;gap:10px;background:#161616;border:1px solid #2a2a2a;border-radius:40px;padding:8px 18px 8px 10px;text-decoration:none}
+.sg-logo{display:inline-flex;align-items:center;gap:10px;background:rgba(22,22,22,.9);border:1px solid #2a2a2a;border-radius:40px;padding:8px 18px 8px 10px;text-decoration:none}
 .sg-logo img{width:28px;height:28px;object-fit:contain}
 .sg-logo-name{display:block;font-size:13px;font-weight:700;color:#fff;letter-spacing:.08em;text-transform:uppercase}
 .sg-logo-sub{display:block;font-size:9px;color:#666;letter-spacing:.15em;text-transform:uppercase}
+@media(max-width:480px){
+  header h1{font-size:22px}
+  .container{padding:20px 16px 60px}
+}
 </style>
 </head>
 <body>

@@ -1,0 +1,309 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>Activations — Silver Glider Admin</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:#0a0a0a;color:#f0f0f0;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;min-height:100vh}
+header{background:#111;border-bottom:1px solid #222;padding:16px 24px;display:flex;align-items:center;justify-content:space-between}
+header h1{font-size:16px;font-weight:600;letter-spacing:.05em}
+header a{color:#555;font-size:13px;text-decoration:none}
+.container{max-width:900px;margin:0 auto;padding:32px 24px}
+.section{margin-bottom:40px}
+.section-title{font-size:11px;color:#555;text-transform:uppercase;letter-spacing:.1em;margin-bottom:16px}
+.card{background:#111;border:1px solid #222;border-radius:12px;padding:24px;margin-bottom:16px}
+input,textarea,select{width:100%;background:#1a1a1a;border:1px solid #2a2a2a;color:#f0f0f0;padding:10px 14px;border-radius:8px;font-size:14px;margin-bottom:10px;outline:none;font-family:inherit}
+input:focus,textarea:focus{border-color:#444}
+input::placeholder,textarea::placeholder{color:#444}
+textarea{resize:vertical;min-height:60px}
+.btn{background:#f0f0f0;color:#0a0a0a;border:none;padding:10px 20px;border-radius:8px;font-size:14px;font-weight:600;cursor:pointer}
+.btn-sm{background:#1a1a1a;border:1px solid #333;color:#ccc;padding:6px 14px;border-radius:6px;font-size:12px;cursor:pointer}
+.btn-sm:hover{border-color:#555;color:#fff}
+.btn-danger{background:#1a1a1a;border:1px solid #333;color:#ff4444;padding:6px 14px;border-radius:6px;font-size:12px;cursor:pointer}
+.activation-row{display:flex;align-items:center;justify-content:space-between;padding:14px 0;border-bottom:1px solid #1a1a1a;gap:12px}
+.activation-row:last-child{border-bottom:none}
+.activation-name{font-size:15px;font-weight:600}
+.activation-slug{font-size:12px;color:#555;font-family:monospace;margin-top:2px}
+.actions{display:flex;gap:8px;flex-shrink:0}
+#detail-view{display:none}
+.back-link{color:#555;font-size:13px;cursor:pointer;margin-bottom:24px;display:inline-block}
+.back-link:hover{color:#fff}
+.participant-row{display:flex;align-items:center;gap:12px;padding:12px 0;border-bottom:1px solid #1a1a1a}
+.participant-row:last-child{border-bottom:none}
+.participant-row img,.p-avatar{width:48px;height:48px;border-radius:8px;object-fit:cover;flex-shrink:0}
+.p-avatar{background:#1a1a1a;display:flex;align-items:center;justify-content:center;font-size:18px;font-weight:700;color:#444}
+.participant-info{flex:1}
+.participant-info .name{font-size:14px;font-weight:600}
+.participant-info .slug{font-size:12px;color:#555;font-family:monospace}
+table{width:100%;border-collapse:collapse;font-size:13px}
+thead th{text-align:left;padding:8px 12px;font-size:11px;color:#555;text-transform:uppercase;letter-spacing:.05em;border-bottom:1px solid #1a1a1a}
+tbody td{padding:10px 12px;border-bottom:1px solid #161616}
+.score{font-weight:700;color:#f0f0f0}
+.qr-url{font-family:monospace;font-size:11px;color:#555;word-break:break-all}
+.tabs{display:flex;gap:4px;margin-bottom:24px;border-bottom:1px solid #222;padding-bottom:0}
+.tab{padding:8px 16px;font-size:13px;color:#555;cursor:pointer;border-bottom:2px solid transparent;margin-bottom:-1px}
+.tab.active{color:#f0f0f0;border-bottom-color:#f0f0f0}
+#msg{font-size:13px;color:#4caf50;margin-top:8px;min-height:20px}
+.two-col{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+@media(max-width:600px){.two-col{grid-template-columns:1fr}}
+</style>
+</head>
+<body>
+<header>
+  <h1>⬡ Silver Glider — Activations</h1>
+  <a href="/admin">&larr; Back to Admin</a>
+</header>
+<div class="container">
+
+  <div id="list-view">
+    <div class="section">
+      <p class="section-title">Create Activation</p>
+      <div class="card">
+        <div class="two-col">
+          <input type="text" id="new-name" placeholder="Activation name (e.g. Best Booth Awards)">
+          <input type="text" id="new-slug" placeholder="URL slug (e.g. best-booth-2026)">
+        </div>
+        <textarea id="new-desc" placeholder="Short description (optional)"></textarea>
+        <button class="btn" onclick="createActivation()">Create Activation</button>
+        <div id="msg"></div>
+      </div>
+    </div>
+
+    <div class="section">
+      <p class="section-title">All Activations</p>
+      <div class="card" id="activations-list">
+        <p style="color:#444;font-size:14px">Loading...</p>
+      </div>
+    </div>
+  </div>
+
+  <div id="detail-view">
+    <span class="back-link" onclick="showList()">&larr; All Activations</span>
+    <h2 id="detail-title" style="font-size:22px;font-weight:700;margin-bottom:4px"></h2>
+    <p id="detail-url" style="font-size:12px;color:#555;font-family:monospace;margin-bottom:24px"></p>
+
+    <div class="tabs">
+      <div class="tab active" onclick="showTab('participants')">Participants</div>
+      <div class="tab" onclick="showTab('results')">Results</div>
+      <div class="tab" onclick="showTab('optins')">SMS Opt-ins</div>
+    </div>
+
+    <div id="tab-participants">
+      <div class="card" style="margin-bottom:16px">
+        <p class="section-title" style="margin-bottom:12px">Add Participant</p>
+        <div class="two-col">
+          <input type="text" id="p-name" placeholder="Name">
+          <input type="text" id="p-slug" placeholder="URL slug (e.g. booth-one)">
+        </div>
+        <textarea id="p-desc" placeholder="Description (optional)"></textarea>
+        <input type="text" id="p-img" placeholder="Image URL (optional)">
+        <button class="btn" onclick="addParticipant()">Add Participant</button>
+        <div id="p-msg" style="font-size:13px;color:#4caf50;margin-top:8px;min-height:20px"></div>
+      </div>
+      <div class="card" id="participants-list">
+        <p style="color:#444;font-size:14px">Loading...</p>
+      </div>
+    </div>
+
+    <div id="tab-results" style="display:none">
+      <div class="card">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px">
+          <p class="section-title" style="margin:0">Vote Results</p>
+          <button class="btn-sm" onclick="exportCSV()">Export CSV</button>
+        </div>
+        <table>
+          <thead>
+            <tr>
+              <th>Participant</th>
+              <th>🔥 Rules</th>
+              <th>🤘 Hell Yeah</th>
+              <th>👎 No Thanks</th>
+              <th>Total</th>
+            </tr>
+          </thead>
+          <tbody id="results-tbody">
+            <tr><td colspan="5" style="color:#444;padding:20px">Loading...</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <div id="tab-optins" style="display:none">
+      <div class="card">
+        <p class="section-title" style="margin-bottom:16px">SMS Opt-ins</p>
+        <table>
+          <thead>
+            <tr><th>Phone</th><th>Date</th></tr>
+          </thead>
+          <tbody id="optins-tbody">
+            <tr><td colspan="2" style="color:#444;padding:20px">Loading...</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+</div>
+<script>
+let token = localStorage.getItem('sgt_token');
+if (!token) { window.location.href = '/admin'; }
+
+let currentActivation = null;
+let currentResults = [];
+
+async function api(path, method='GET', body=null) {
+  const opts = { method, headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' } };
+  if (body) opts.body = JSON.stringify(body);
+  const res = await fetch(path, opts);
+  if (res.status === 401) { window.location.href = '/admin'; return; }
+  return res.json();
+}
+
+async function loadActivations() {
+  const activations = await api('/activations/admin/activations/data');
+  const el = document.getElementById('activations-list');
+  if (!activations || !activations.length) {
+    el.innerHTML = '<p style="color:#444;font-size:14px">No activations yet.</p>';
+    return;
+  }
+  el.innerHTML = activations.map(a => `
+    <div class="activation-row">
+      <div>
+        <div class="activation-name">${a.name}</div>
+        <div class="activation-slug">/activations/${a.slug}</div>
+      </div>
+      <div class="actions">
+        <button class="btn-sm" onclick="openActivation(${a.id}, '${a.name}', '${a.slug}')">Manage</button>
+      </div>
+    </div>
+  `).join('');
+}
+
+async function createActivation() {
+  const name = document.getElementById('new-name').value.trim();
+  const slug = document.getElementById('new-slug').value.trim();
+  const description = document.getElementById('new-desc').value.trim();
+  if (!name || !slug) return;
+  const result = await api('/activations/admin/activations/create', 'POST', { name, slug, description });
+  document.getElementById('msg').textContent = result.error || 'Created.';
+  document.getElementById('new-name').value = '';
+  document.getElementById('new-slug').value = '';
+  document.getElementById('new-desc').value = '';
+  loadActivations();
+}
+
+function openActivation(id, name, slug) {
+  currentActivation = { id, name, slug };
+  document.getElementById('list-view').style.display = 'none';
+  document.getElementById('detail-view').style.display = 'block';
+  document.getElementById('detail-title').textContent = name;
+  document.getElementById('detail-url').textContent = window.location.origin + '/activations/' + slug;
+  loadParticipants();
+}
+
+function showList() {
+  document.getElementById('list-view').style.display = 'block';
+  document.getElementById('detail-view').style.display = 'none';
+  loadActivations();
+}
+
+function showTab(tab) {
+  ['participants','results','optins'].forEach(t => {
+    document.getElementById('tab-' + t).style.display = t === tab ? 'block' : 'none';
+  });
+  document.querySelectorAll('.tab').forEach((el, i) => {
+    el.classList.toggle('active', ['participants','results','optins'][i] === tab);
+  });
+  if (tab === 'results') loadResults();
+  if (tab === 'optins') loadOptins();
+}
+
+async function loadParticipants() {
+  const participants = await api(`/activations/admin/activations/${currentActivation.id}/participants`);
+  const el = document.getElementById('participants-list');
+  if (!participants || !participants.length) {
+    el.innerHTML = '<p style="color:#444;font-size:14px">No participants yet.</p>';
+    return;
+  }
+  el.innerHTML = participants.map(p => `
+    <div class="participant-row">
+      ${p.image_url ? `<img src="${p.image_url}" alt="${p.name}">` : `<div class="p-avatar">${p.name[0]}</div>`}
+      <div class="participant-info">
+        <div class="name">${p.name}</div>
+        <div class="slug">/activations/${currentActivation.slug}/${p.slug}</div>
+      </div>
+      <button class="btn-sm" onclick="copyUrl('${window.location.origin}/activations/${currentActivation.slug}/${p.slug}')">Copy URL</button>
+    </div>
+  `).join('');
+}
+
+async function addParticipant() {
+  const name = document.getElementById('p-name').value.trim();
+  const slug = document.getElementById('p-slug').value.trim();
+  const description = document.getElementById('p-desc').value.trim();
+  const image_url = document.getElementById('p-img').value.trim();
+  if (!name || !slug) return;
+  const result = await api(`/activations/admin/activations/${currentActivation.id}/participants`, 'POST', { name, slug, description, image_url });
+  document.getElementById('p-msg').textContent = result.error || 'Added.';
+  document.getElementById('p-name').value = '';
+  document.getElementById('p-slug').value = '';
+  document.getElementById('p-desc').value = '';
+  document.getElementById('p-img').value = '';
+  loadParticipants();
+}
+
+async function loadResults() {
+  const data = await api(`/activations/admin/activations/${currentActivation.id}/results`);
+  currentResults = data.results || [];
+  const tbody = document.getElementById('results-tbody');
+  if (!currentResults.length) {
+    tbody.innerHTML = '<tr><td colspan="5" style="color:#444;padding:20px">No votes yet.</td></tr>';
+    return;
+  }
+  tbody.innerHTML = currentResults.map(r => `
+    <tr>
+      <td style="font-weight:600">${r.name}</td>
+      <td>${r.rules}</td>
+      <td>${r.hell_yeah}</td>
+      <td>${r.no_thanks}</td>
+      <td class="score">${r.total}</td>
+    </tr>
+  `).join('');
+}
+
+async function loadOptins() {
+  const data = await api(`/activations/admin/activations/${currentActivation.id}/results`);
+  const optins = data.optins || [];
+  const tbody = document.getElementById('optins-tbody');
+  if (!optins.length) {
+    tbody.innerHTML = '<tr><td colspan="2" style="color:#444;padding:20px">No opt-ins yet.</td></tr>';
+    return;
+  }
+  tbody.innerHTML = optins.map(o => `
+    <tr>
+      <td style="font-family:monospace">${o.phone}</td>
+      <td style="color:#666;font-size:12px">${new Date(o.created_at).toLocaleDateString()}</td>
+    </tr>
+  `).join('');
+}
+
+function copyUrl(url) {
+  navigator.clipboard.writeText(url);
+}
+
+function exportCSV() {
+  if (!currentResults.length) return;
+  const rows = [['Participant','This Booth Rules','Hell Yeah','No Thanks','Total']];
+  currentResults.forEach(r => rows.push([r.name, r.rules, r.hell_yeah, r.no_thanks, r.total]));
+  const csv = rows.map(r => r.map(v => `"${v}"`).join(',')).join('\n');
+  const blob = new Blob([csv], { type: 'text/csv' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a'); a.href = url; a.download = `${currentActivation.slug}-results.csv`; a.click();
+}
+
+loadActivations();
+</script>
+</body>
+</html>

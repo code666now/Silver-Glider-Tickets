@@ -773,10 +773,6 @@ footer span{color:#333}
 </div>
 
 <div class="container">
-  ${(() => {
-    const embedUrl = spotifyEmbedUrl(participant.booth_song_url);
-    return embedUrl ? `<iframe src="${embedUrl}" width="100%" height="80" frameborder="0" allow="autoplay; clipboard-write; encrypted-media; fullscreen; picture-in-picture" loading="lazy" style="border-radius:12px;margin-bottom:16px;display:block"></iframe>` : '';
-  })()}
   <div id="vote-section">
     ${votingClosed ? `
     <div style="background:rgba(28,197,190,.08);border:1px solid rgba(28,197,190,.2);border-radius:14px;padding:24px;text-align:center;margin-bottom:16px">

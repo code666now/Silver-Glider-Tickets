@@ -7,7 +7,15 @@ const path = require('path');
 const multer = require('multer');
 const { uploadImage } = require('../lib/cloudinary');
 const QRCode = require('qrcode');
+const { sendBoothConfirmation } = require('../lib/mailer');
 const upload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 10 * 1024 * 1024 } });
+
+function spotifyEmbedUrl(url) {
+  if (!url) return null;
+  const match = url.match(/open\.spotify\.com\/(track|album|playlist)\/([a-zA-Z0-9]+)/);
+  if (!match) return null;
+  return `https://open.spotify.com/embed/${match[1]}/${match[2]}?utm_source=generator&theme=0`;
+}
 
 // Simple in-memory rate limiter: max 30 votes per IP per 10 minutes
 const voteRateLimit = (() => {
@@ -75,7 +83,7 @@ router.post('/admin/upload-image', requireActivationsAdmin, upload.single('image
 
 router.post('/admin/activations/:id/participants', requireActivationsAdmin, upload.single('image'), async (req, res) => {
   try {
-    let { name, slug, description, image_url, instagram_handle } = req.body;
+    let { name, slug, description, image_url, instagram_handle, booth_song_url } = req.body;
     if (req.file) {
       const uploaded = await uploadImage(req.file.buffer);
       image_url = uploaded.secure_url;
@@ -83,7 +91,7 @@ router.post('/admin/activations/:id/participants', requireActivationsAdmin, uplo
     const participant = await db.createParticipant({
       activation_id: req.params.id,
       name, slug: slug.toLowerCase().replace(/\s+/g, '-'),
-      description, image_url, instagram_handle
+      description, image_url, instagram_handle, booth_song_url: booth_song_url || null
     });
     res.json(participant);
   } catch (err) {
@@ -93,12 +101,12 @@ router.post('/admin/activations/:id/participants', requireActivationsAdmin, uplo
 
 router.put('/admin/activations/participants/:id', requireActivationsAdmin, upload.single('image'), async (req, res) => {
   try {
-    let { name, slug, description, image_url, instagram_handle } = req.body;
+    let { name, slug, description, image_url, instagram_handle, booth_song_url } = req.body;
     if (req.file) {
       const uploaded = await uploadImage(req.file.buffer);
       image_url = uploaded.secure_url;
     }
-    const participant = await db.updateParticipant(req.params.id, { name, slug, description, image_url, instagram_handle });
+    const participant = await db.updateParticipant(req.params.id, { name, slug, description, image_url, instagram_handle, booth_song_url: booth_song_url || null });
     res.json(participant);
   } catch (err) {
     res.status(500).json({ error: err.message });
@@ -161,7 +169,7 @@ router.post('/:activationSlug/join', upload.single('image'), async (req, res) =>
   try {
     const activation = await db.getActivationBySlug(req.params.activationSlug);
     if (!activation || !activation.active) return res.status(404).json({ error: 'Not found' });
-    const { name, description, contact_email, contact_phone, instagram_handle } = req.body;
+    const { name, description, contact_email, contact_phone, instagram_handle, booth_song_url } = req.body;
     if (!name) return res.status(400).json({ error: 'Name required' });
     let image_url = null;
     if (req.file) {
@@ -171,8 +179,14 @@ router.post('/:activationSlug/join', upload.single('image'), async (req, res) =>
     const slug = name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
     const participant = await db.createParticipant({
       activation_id: activation.id, name, slug, description, image_url,
-      status: 'pending', contact_email, contact_phone, instagram_handle
+      status: 'approved', contact_email, contact_phone, instagram_handle, booth_song_url: booth_song_url || null
     });
+    if (contact_email) {
+      const baseUrl = process.env.RAILWAY_BASE_URL
+        || (process.env.RAILWAY_PUBLIC_DOMAIN ? `https://${process.env.RAILWAY_PUBLIC_DOMAIN}` : '');
+      const profileUrl = `${baseUrl}/activations/${activation.slug}/${slug}/profile`;
+      sendBoothConfirmation({ to: contact_email, boothName: name, activationName: activation.name, profileUrl }).catch(() => {});
+    }
     res.json({ success: true, participant });
   } catch (err) {
     res.status(500).json({ error: err.message });
@@ -183,7 +197,10 @@ router.get('/:activationSlug', async (req, res) => {
   const activation = await db.getActivationBySlug(req.params.activationSlug);
   if (!activation || !activation.active) return res.status(404).send('Not found');
   const participants = await db.getParticipantsByActivation(activation.id);
-  res.send(renderActivationLanding(activation, participants));
+  const results = await db.getResultsByActivation(activation.id);
+  const voteMap = {};
+  results.forEach(r => { voteMap[r.slug] = parseInt(r.total) || 0; });
+  res.send(renderActivationLanding(activation, participants, voteMap));
 });
 
 router.post('/admin/activations/:id/close-voting', requireActivationsAdmin, async (req, res) => {
@@ -229,7 +246,8 @@ router.get('/:activationSlug/:participantSlug', async (req, res) => {
   if (!activation || !activation.active) return res.status(404).send('Not found');
   const participant = await db.getParticipantBySlug(activation.id, req.params.participantSlug);
   if (!participant) return res.status(404).send('Not found');
-  res.send(renderVotingPage(activation, participant, activation.voting_closed));
+  const allParticipants = await db.getParticipantsByActivation(activation.id);
+  res.send(renderVotingPage(activation, participant, activation.voting_closed, allParticipants));
 });
 
 router.post('/:activationSlug/:participantSlug/vote', voteRateLimit, async (req, res) => {
@@ -268,24 +286,33 @@ function renderSignupPage(activation) {
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<meta name="viewport" content="width=device-width,initial-scale=1.0,viewport-fit=cover">
+<meta name="theme-color" content="#0a0a0a">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <title>Join ${activation.name}</title>
 <style>
-*{box-sizing:border-box;margin:0;padding:0}
-body{color:#f0f0f0;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;min-height:100vh;background:#0a0a0a url('/thrift-bg.jpg') center/cover fixed}
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+body{color:#f0f0f0;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;min-height:100vh;background:#0a0a0a url('/thrift-bg.jpg') center/cover fixed;-webkit-text-size-adjust:100%}
 body::before{content:'';position:fixed;inset:0;background:rgba(0,0,0,.82);z-index:0}
 header,.container,#success{position:relative;z-index:1}
-header{padding:20px 16px;text-align:center;border-bottom:1px solid rgba(255,255,255,.08)}
-header h1{font-size:26px;font-weight:700;margin-top:12px}
+header{padding:max(20px,env(safe-area-inset-top)) 16px 20px;text-align:center;border-bottom:1px solid rgba(255,255,255,.08)}
+header h1{font-size:clamp(20px,5vw,26px);font-weight:700;margin-top:12px}
 header .sub{font-size:14px;color:#888;margin-top:6px}
-.container{max-width:480px;margin:0 auto;padding:24px 16px 48px}
-label{display:block;font-size:11px;color:#555;text-transform:uppercase;letter-spacing:.06em;margin-bottom:6px;margin-top:20px}
-input,textarea{width:100%;background:rgba(0,0,0,.45);border:1px solid rgba(255,255,255,.12);color:#f0f0f0;padding:14px;border-radius:10px;font-size:16px;outline:none;font-family:inherit;-webkit-appearance:none;backdrop-filter:blur(4px)}
-input:focus,textarea:focus{border-color:#444}
-input::placeholder,textarea::placeholder{color:#333}
-textarea{resize:vertical;min-height:80px}
-.upload-area input[type=file]{position:absolute;inset:0;opacity:0;cursor:pointer;width:100%;height:100%}
-.btn{width:100%;background:#1CC5BE;color:#0a0a0a;border:none;padding:18px;border-radius:12px;font-size:17px;font-weight:700;cursor:pointer;margin-top:28px;-webkit-appearance:none}
+.container{max-width:480px;margin:0 auto;padding:24px max(16px,env(safe-area-inset-right)) max(80px,calc(env(safe-area-inset-bottom) + 48px)) max(16px,env(safe-area-inset-left))}
+.field{position:relative;margin-top:20px}
+.field input,.field textarea{width:100%;background:rgba(0,0,0,.45);border:1px solid rgba(255,255,255,.12);color:#f0f0f0;padding:22px 14px 8px;border-radius:10px;font-size:16px;outline:none;font-family:inherit;-webkit-appearance:none;backdrop-filter:blur(4px);touch-action:manipulation;transition:border-color .2s}
+.field input:focus,.field textarea:focus{border-color:rgba(255,255,255,.35);background:rgba(0,0,0,.6)}
+.field input::placeholder,.field textarea::placeholder{color:transparent}
+.field textarea{resize:none;min-height:88px}
+.field-label{position:absolute;left:14px;top:50%;transform:translateY(-50%);font-size:14px;color:rgba(255,255,255,.35);pointer-events:none;transition:all .2s ease;letter-spacing:.01em}
+.field textarea~.field-label{top:18px;transform:none}
+.field input:focus~.field-label,.field input:not(:placeholder-shown)~.field-label,
+.field textarea:focus~.field-label,.field textarea:not(:placeholder-shown)~.field-label{top:8px;transform:none;font-size:10px;color:rgba(255,255,255,.4);letter-spacing:.06em;text-transform:uppercase}
+.field-hint{font-size:11px;color:rgba(255,255,255,.2);margin-top:5px;padding-left:2px}
+.btn{width:100%;background:#1CC5BE;color:#0a0a0a;border:none;padding:18px;border-radius:12px;font-size:17px;font-weight:700;cursor:pointer;margin-top:28px;-webkit-appearance:none;min-height:56px;touch-action:manipulation;transition:opacity .15s}
+.btn:active{opacity:.8}
 .btn:disabled{opacity:.5;cursor:not-allowed}
 #success{display:none;text-align:center;padding:48px 0}
 #success h2{font-size:24px;font-weight:700;margin-bottom:8px}
@@ -293,14 +320,10 @@ textarea{resize:vertical;min-height:80px}
 #error-msg{color:#ff4444;font-size:13px;margin-top:10px;text-align:center}
 .progress{height:4px;background:#222;border-radius:2px;margin-top:16px;display:none}
 .progress-bar{height:100%;background:#1CC5BE;border-radius:2px;width:0%;transition:width .3s}
-.sg-logo{display:inline-flex;align-items:center;gap:10px;background:rgba(22,22,22,.9);border:1px solid #2a2a2a;border-radius:40px;padding:8px 18px 8px 10px;text-decoration:none}
-.sg-logo img{width:28px;height:28px;object-fit:contain}
-.sg-logo-name{display:block;font-size:13px;font-weight:700;color:#fff;letter-spacing:.08em;text-transform:uppercase}
-.sg-logo-sub{display:block;font-size:9px;color:#666;letter-spacing:.15em;text-transform:uppercase}
-@media(max-width:480px){
-  header h1{font-size:22px}
-  .container{padding:20px 16px 60px}
-}
+.sg-logo{display:inline-flex;align-items:center;gap:7px;text-decoration:none;opacity:.45}
+.sg-logo img{width:16px;height:16px;object-fit:contain;filter:grayscale(1)}
+.sg-logo-name{display:block;font-size:10px;font-weight:600;color:#fff;letter-spacing:.1em;text-transform:uppercase}
+.sg-logo-sub{display:none}
 </style>
 </head>
 <body>
@@ -310,41 +333,51 @@ textarea{resize:vertical;min-height:80px}
   <p class="sub">Best Booth Award — Register to compete</p>
 </header>
 <div class="container">
-  <div style="background:#111;border:1px solid #1a1a1a;border-radius:12px;padding:20px;margin-bottom:24px">
-    <p style="font-size:13px;color:#1CC5BE;font-weight:700;letter-spacing:.08em;text-transform:uppercase;margin-bottom:10px">The Prize</p>
-    <div style="display:flex;flex-direction:column;gap:8px">
+  <div style="background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.1);border-radius:16px;padding:20px;margin-bottom:24px;backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px)">
+    <p style="font-size:11px;color:#1CC5BE;font-weight:700;letter-spacing:.1em;text-transform:uppercase;margin-bottom:12px">The Prize</p>
+    <div style="display:flex;flex-direction:column;gap:10px">
       <div style="display:flex;align-items:center;gap:12px;font-size:14px">
         <span style="font-size:20px">🥇</span>
-        <div><span style="color:#f0f0f0;font-weight:600">1st Place</span> <span style="color:#666">— 2 tickets to The Fox Theatre</span></div>
+        <div><span style="color:#f0f0f0;font-weight:600">1st Place</span> <span style="color:rgba(255,255,255,.4)">— 2 tickets to The Fox Theatre</span></div>
       </div>
       <div style="display:flex;align-items:center;gap:12px;font-size:14px">
         <span style="font-size:20px">🥈</span>
-        <div><span style="color:#f0f0f0;font-weight:600">2nd Place</span> <span style="color:#666">— 2 tickets to The Independent</span></div>
+        <div><span style="color:#f0f0f0;font-weight:600">2nd Place</span> <span style="color:rgba(255,255,255,.4)">— 2 tickets to The Independent</span></div>
       </div>
       <div style="display:flex;align-items:center;gap:12px;font-size:14px">
         <span style="font-size:20px">🥉</span>
-        <div><span style="color:#f0f0f0;font-weight:600">3rd Place</span> <span style="color:#666">— 2 tickets to The Make Out Room</span></div>
+        <div><span style="color:#f0f0f0;font-weight:600">3rd Place</span> <span style="color:rgba(255,255,255,.4)">— 2 tickets to The Make Out Room</span></div>
       </div>
     </div>
-    <p style="font-size:12px;color:#444;margin-top:12px">Festival attendees vote for their favorite booth. Top vote-getter wins. Silver Glider is a music discovery service — we drop concert picks straight to your phone.</p>
+    <p style="font-size:12px;color:rgba(255,255,255,.2);margin-top:14px;line-height:1.5">Festival attendees vote for their favorite booth. Top vote-getter wins. Silver Glider is a music discovery service — we drop concert picks straight to your phone.</p>
   </div>
+  <div style="display:flex;align-items:center;gap:12px;margin:28px 0 24px">
+    <div style="flex:1;height:1px;background:rgba(255,255,255,.07)"></div>
+    <span style="font-size:11px;color:rgba(255,255,255,.2);letter-spacing:.1em;text-transform:uppercase;white-space:nowrap">Register your booth</span>
+    <div style="flex:1;height:1px;background:rgba(255,255,255,.07)"></div>
+  </div>
+
   <div id="form-view">
-    <label>Booth name *</label>
-    <input type="text" id="name" placeholder="e.g. Vintage Threads" maxlength="100">
+    <div class="field">
+      <input type="text" id="name" placeholder="Booth name" maxlength="100">
+      <span class="field-label">Booth name *</span>
+    </div>
 
-    <label>Description</label>
-    <textarea id="description" placeholder="Tell people what makes your booth special..." maxlength="300"></textarea>
+    <div class="field">
+      <textarea id="description" placeholder="Description" maxlength="300"></textarea>
+      <span class="field-label">Description</span>
+    </div>
 
-    <label>Photo</label>
+    <label style="display:block;font-size:10px;color:rgba(255,255,255,.3);text-transform:uppercase;letter-spacing:.06em;margin-top:20px;margin-bottom:8px">Photo</label>
     <div id="upload-area" style="margin-top:6px">
       <div id="upload-placeholder">
         <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:10px">
-          <label style="all:unset;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;background:#111;border:1px solid #222;border-radius:12px;padding:20px;cursor:pointer;font-size:13px;color:#aaa;text-align:center">
+          <label style="all:unset;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.1);border-radius:12px;padding:20px;cursor:pointer;font-size:13px;color:#888;text-align:center;backdrop-filter:blur(4px)">
             <span style="font-size:28px">📸</span>
             Take a photo
             <input type="file" accept="image/*" capture="environment" style="display:none" onchange="previewImage(this)">
           </label>
-          <label style="all:unset;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;background:#111;border:1px solid #222;border-radius:12px;padding:20px;cursor:pointer;font-size:13px;color:#aaa;text-align:center">
+          <label style="all:unset;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.1);border-radius:12px;padding:20px;cursor:pointer;font-size:13px;color:#888;text-align:center;backdrop-filter:blur(4px)">
             <span style="font-size:28px">🖼️</span>
             Choose from library
             <input type="file" accept="image/*" style="display:none" onchange="previewImage(this)">
@@ -358,25 +391,36 @@ textarea{resize:vertical;min-height:80px}
     </div>
     <input type="file" id="image-file" accept="image/*" style="display:none">
 
-    <label>Instagram handle (optional)</label>
-    <input type="text" id="instagram-handle" placeholder="@yourbooth">
+    <div class="field">
+      <input type="text" id="instagram-handle" placeholder="Instagram handle">
+      <span class="field-label">Instagram handle (optional)</span>
+    </div>
 
-    <label>Your email (optional)</label>
-    <input type="email" id="contact-email" placeholder="you@example.com">
+    <div class="field">
+      <input type="url" id="booth-song-url" placeholder="Booth song" inputmode="url" autocapitalize="none">
+      <span class="field-label">Booth song — Spotify link (optional)</span>
+    </div>
+    <p class="field-hint" style="margin-top:5px;padding-left:2px;font-size:11px;color:rgba(255,255,255,.2)">Paste a Spotify track link. Plays on your voting page.</p>
+
+    <div class="field">
+      <input type="email" id="contact-email" placeholder="Email">
+      <span class="field-label">Your email (optional)</span>
+    </div>
 
 
 <div class="progress" id="progress-bar-wrap">
       <div class="progress-bar" id="progress-bar"></div>
     </div>
 
-    <button class="btn" id="submit-btn" onclick="submitForm()">Register My Booth</button>
+    <button class="btn" id="submit-btn" onclick="submitForm()" style="margin-top:36px">Register My Booth</button>
     <div id="error-msg"></div>
   </div>
 
   <div id="success">
     <div style="font-size:48px;margin-bottom:16px">🎉</div>
-    <h2>You're registered.</h2>
-    <p>Your booth is pending review and will appear on the voting page once approved.</p>
+    <h2>You're live.</h2>
+    <p style="margin-bottom:8px">Your booth is on the voting page now.</p>
+    <p id="success-email-note" style="font-size:13px;color:#555;display:none">Check your email — we sent your printable QR code.</p>
   </div>
 </div>
 <script>
@@ -407,8 +451,9 @@ async function submitForm() {
   const name = document.getElementById('name').value.trim();
   const description = document.getElementById('description').value.trim();
   const contactEmail = document.getElementById('contact-email').value.trim();
-  const contactPhone = document.getElementById('contact-phone').value.trim();
+  const contactPhone = document.getElementById('contact-phone') ? document.getElementById('contact-phone').value.trim() : '';
   const instagramHandle = document.getElementById('instagram-handle').value.trim().replace(/^@/, '');
+  const boothSongUrl = document.getElementById('booth-song-url').value.trim();
   const imageFile = document.getElementById('image-file').files[0];
   const errEl = document.getElementById('error-msg');
   const btn = document.getElementById('submit-btn');
@@ -427,6 +472,7 @@ async function submitForm() {
   formData.append('contact_email', contactEmail);
   formData.append('contact_phone', contactPhone);
   if (instagramHandle) formData.append('instagram_handle', instagramHandle);
+  if (boothSongUrl) formData.append('booth_song_url', boothSongUrl);
   if (selectedFile) formData.append('image', selectedFile);
 
   document.getElementById('progress-bar').style.width = '70%';
@@ -438,6 +484,7 @@ async function submitForm() {
     if (data.error) { errEl.textContent = data.error; btn.disabled = false; btn.textContent = 'Register My Booth'; return; }
     document.getElementById('form-view').style.display = 'none';
     document.getElementById('success').style.display = 'block';
+    if (contactEmail) document.getElementById('success-email-note').style.display = 'block';
   } catch (e) {
     errEl.textContent = 'Something went wrong. Try again.';
     btn.disabled = false;
@@ -449,9 +496,11 @@ async function submitForm() {
 </html>`;
 }
 
-function renderActivationLanding(activation, participants) {
+function renderActivationLanding(activation, participants, voteMap = {}) {
+  const slugList = JSON.stringify(participants.map(p => p.slug));
+  const voteData = JSON.stringify(voteMap);
   const cards = participants.map(p => `
-    <a href="/activations/${activation.slug}/${p.slug}" class="booth-card">
+    <a href="/activations/${activation.slug}/${p.slug}" class="booth-card" data-slug="${p.slug}" data-name="${p.name.toLowerCase()}" data-votes="${voteMap[p.slug] || 0}" id="card-${p.slug}">
       ${p.image_url
         ? `<div class="booth-img" style="background-image:url('${p.image_url}')"></div>`
         : `<div class="booth-img booth-img-placeholder"><span>${p.name[0]}</span></div>`}
@@ -461,7 +510,7 @@ function renderActivationLanding(activation, participants) {
           ${p.description ? `<p>${p.description}</p>` : ''}
         </div>
         <div class="vote-btn-wrap">
-          <span class="vote-btn">Vote</span>
+          <span class="vote-btn" id="vbtn-${p.slug}">Vote</span>
         </div>
       </div>
     </a>
@@ -471,45 +520,45 @@ function renderActivationLanding(activation, participants) {
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<meta name="viewport" content="width=device-width,initial-scale=1.0,viewport-fit=cover">
+<meta name="theme-color" content="#0a0a0a">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <title>${activation.name}</title>
 <style>
-*{box-sizing:border-box;margin:0;padding:0}
-body{color:#f0f0f0;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;min-height:100vh;background:#0a0a0a url('/landing-bg.jpg') center/cover fixed}
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+body{color:#f0f0f0;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;min-height:100vh;background:#0a0a0a url('/landing-bg.jpg') center/cover fixed;-webkit-text-size-adjust:100%}
 body::before{content:'';position:fixed;inset:0;background:rgba(0,0,0,.82);z-index:0}
 header,.prize-card,.container,footer{position:relative;z-index:1}
-header{padding:20px 16px 16px;text-align:center;border-bottom:1px solid rgba(255,255,255,.08)}
-header h1{font-size:26px;font-weight:800;margin-top:12px;letter-spacing:-.02em}
+header{padding:max(20px,env(safe-area-inset-top)) max(16px,env(safe-area-inset-right)) 16px max(16px,env(safe-area-inset-left));text-align:center;border-bottom:1px solid rgba(255,255,255,.08)}
+header h1{font-size:clamp(20px,5vw,26px);font-weight:800;margin-top:12px;letter-spacing:-.02em}
 header .tagline{font-size:13px;color:#555;margin-top:6px}
-.sg-logo{display:inline-flex;align-items:center;gap:10px;background:#161616;border:1px solid #2a2a2a;border-radius:40px;padding:8px 18px 8px 10px;text-decoration:none}
-.sg-logo img{width:28px;height:28px;object-fit:contain}
-.sg-logo-name{display:block;font-size:13px;font-weight:700;color:#fff;letter-spacing:.08em;text-transform:uppercase}
-.sg-logo-sub{display:block;font-size:9px;color:#1CC5BE;letter-spacing:.15em;text-transform:uppercase}
+.sg-logo{display:inline-flex;align-items:center;gap:7px;text-decoration:none;opacity:.45}
+.sg-logo img{width:16px;height:16px;object-fit:contain;filter:grayscale(1)}
+.sg-logo-name{display:block;font-size:10px;font-weight:600;color:#fff;letter-spacing:.1em;text-transform:uppercase}
+.sg-logo-sub{display:none}
 .stats-bar{display:flex;align-items:center;justify-content:center;gap:6px;margin-top:10px;font-size:12px;color:#555}
 .stats-bar span{color:#1CC5BE;font-weight:700}
-.prize-card{margin:16px 16px 0;background:#111;border:1px solid #1a1a1a;border-radius:14px;padding:16px 20px}
+.prize-card{margin:16px max(16px,env(safe-area-inset-right)) 0 max(16px,env(safe-area-inset-left));background:#111;border:1px solid #1a1a1a;border-radius:14px;padding:16px 20px}
 .prize-label{font-size:11px;color:#1CC5BE;font-weight:700;letter-spacing:.1em;text-transform:uppercase;margin-bottom:12px}
 .prize-row{display:flex;align-items:center;gap:12px;padding:6px 0;font-size:14px}
 .prize-row:not(:last-child){border-bottom:1px solid #1a1a1a}
 .prize-venue{color:#f0f0f0;font-weight:600}
 .prize-desc{color:#555;font-size:12px}
-.container{max-width:600px;margin:0 auto;padding:16px}
-.booth-card{display:block;background:#111;border:1px solid #1a1a1a;border-radius:16px;margin-bottom:14px;text-decoration:none;color:inherit;overflow:hidden;transition:border-color .2s,transform .1s}
-.booth-card:active{transform:scale(.98)}
-.booth-img{width:100%;height:200px;background-size:cover;background-position:center;background-color:#1a1a1a}
+.container{max-width:600px;margin:0 auto;padding:16px max(16px,env(safe-area-inset-right)) max(32px,calc(env(safe-area-inset-bottom)+16px)) max(16px,env(safe-area-inset-left))}
+.booth-card{display:block;background:#111;border:1px solid #1a1a1a;border-radius:16px;margin-bottom:14px;text-decoration:none;color:inherit;overflow:hidden;transition:border-color .15s,transform .1s;-webkit-user-select:none;user-select:none}
+.booth-card:active{transform:scale(.985);border-color:#333}
+.booth-img{width:100%;height:clamp(160px,40vw,220px);background-size:cover;background-position:center;background-color:#1a1a1a}
 .booth-img-placeholder{display:flex;align-items:center;justify-content:center}
-.booth-img-placeholder span{font-size:64px;font-weight:800;color:#333}
+.booth-img-placeholder span{font-size:clamp(48px,12vw,72px);font-weight:800;color:#333}
 .booth-body{display:flex;align-items:center;justify-content:space-between;padding:14px 16px;gap:12px}
-.booth-meta h3{font-size:17px;font-weight:700;margin-bottom:3px}
+.booth-meta h3{font-size:clamp(15px,4vw,17px);font-weight:700;margin-bottom:3px}
 .booth-meta p{font-size:13px;color:#666;line-height:1.4}
 .vote-btn-wrap{flex-shrink:0}
-.vote-btn{display:inline-block;background:#1CC5BE;color:#0a0a0a;font-size:14px;font-weight:700;padding:10px 20px;border-radius:8px;white-space:nowrap}
+.vote-btn{display:inline-block;background:#1CC5BE;color:#0a0a0a;font-size:14px;font-weight:700;padding:11px 20px;border-radius:8px;white-space:nowrap;min-height:44px;display:flex;align-items:center}
 .empty{color:#444;text-align:center;padding:60px 0;font-size:15px}
-footer{text-align:center;padding:32px;font-size:12px;color:#333;border-top:1px solid #1a1a1a;margin-top:8px}
-@media(max-width:480px){
-  .booth-img{height:180px}
-  header h1{font-size:22px}
-}
+footer{text-align:center;padding:32px max(20px,env(safe-area-inset-right)) max(32px,calc(env(safe-area-inset-bottom)+20px)) max(20px,env(safe-area-inset-left));font-size:12px;color:#333;border-top:1px solid #1a1a1a;margin-top:8px}
 </style>
 </head>
 <body>
@@ -517,6 +566,15 @@ footer{text-align:center;padding:32px;font-size:12px;color:#333;border-top:1px s
   <a href="/" class="sg-logo"><img src="/logo.png" alt="Silver Glider"><div class="sg-logo-text"><span class="sg-logo-name">Silver Glider</span><span class="sg-logo-sub">Music Discovery</span></div></a>
   <h1>${activation.name}</h1>
   <div class="stats-bar"><span>${participants.length}</span> booth${participants.length !== 1 ? 's' : ''} competing — tap one to vote</div>
+  <div id="progress-wrap" style="display:none;margin-top:14px;width:100%;max-width:400px;margin-left:auto;margin-right:auto">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">
+      <span style="font-size:12px;color:#555;font-weight:600" id="progress-label">0 of ${participants.length} voted</span>
+      <span style="font-size:12px;color:#1CC5BE;font-weight:700" id="progress-pct">0%</span>
+    </div>
+    <div style="height:4px;background:#1a1a1a;border-radius:2px;overflow:hidden">
+      <div id="progress-bar" style="height:100%;background:#1CC5BE;border-radius:2px;width:0%;transition:width .4s ease"></div>
+    </div>
+  </div>
 </header>
 
 <div class="prize-card">
@@ -526,29 +584,132 @@ footer{text-align:center;padding:32px;font-size:12px;color:#333;border-top:1px s
   <div class="prize-row"><span>🥉</span><div><div class="prize-venue">The Make Out Room</div><div class="prize-desc">3rd place — 2 concert tickets</div></div></div>
 </div>
 
-<div class="container">
+<div style="position:relative;z-index:1;max-width:600px;margin:16px auto 0;padding:0 16px">
+  <button id="start-btn" onclick="startVoting()" style="width:100%;background:rgba(255,255,255,.06);color:#e0e0e0;border:1px solid rgba(255,255,255,.1);padding:16px;border-radius:14px;font-size:16px;font-weight:600;cursor:pointer;min-height:54px;-webkit-appearance:none;touch-action:manipulation;transition:opacity .15s;display:flex;align-items:center;justify-content:center;gap:10px;letter-spacing:.01em">
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><polygon points="5 3 19 12 5 21 5 3"/></svg>
+    <span id="start-label">Start voting</span>
+  </button>
+</div>
+
+<div style="position:relative;z-index:1;max-width:600px;margin:16px auto 0;padding:0 16px;display:flex;align-items:center;justify-content:space-between">
+  <span style="font-size:12px;color:#444;font-weight:500">Sort by</span>
+  <div style="display:flex;background:#111;border:1px solid #1a1a1a;border-radius:8px;overflow:hidden">
+    <button id="sort-votes" onclick="setSort('votes')" style="padding:8px 14px;font-size:12px;font-weight:600;border:none;cursor:pointer;background:#1CC5BE;color:#0a0a0a;transition:all .15s">Most votes</button>
+    <button id="sort-az" onclick="setSort('az')" style="padding:8px 14px;font-size:12px;font-weight:600;border:none;cursor:pointer;background:transparent;color:#555;transition:all .15s">A–Z</button>
+  </div>
+</div>
+
+<div class="container" id="booth-list">
   ${cards || '<p class="empty">No booths yet.</p>'}
 </div>
 <footer style="text-align:center;padding:32px 20px">
   <a href="https://instagram.com/silverglidertix" target="_blank" rel="noopener noreferrer" style="display:inline-block;color:#666;text-decoration:none">
     <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="2" width="20" height="20" rx="5" ry="5"/><circle cx="12" cy="12" r="4"/><circle cx="17.5" cy="6.5" r="1.5" fill="currentColor" stroke="none"/></svg>
   </a>
-  <div style="margin-top:10px;color:#666;font-size:12px;font-weight:500">Powered by Silver Glider</div>
+  <a href="/" style="display:inline-flex;align-items:center;gap:7px;text-decoration:none;opacity:.4;margin-top:10px">
+    <img src="/logo.png" alt="" style="width:18px;height:18px;object-fit:contain;filter:grayscale(1)">
+    <span style="font-size:10px;font-weight:600;color:#fff;letter-spacing:.1em;text-transform:uppercase">Silver Glider</span>
+  </a>
 </footer>
+<script>
+(function(){
+  var slugs = ${slugList};
+  var total = slugs.length;
+  var key = 'sg_voted_${activation.slug}';
+  var currentSort = 'votes';
+
+  window.setSort = function(mode) {
+    currentSort = mode;
+    document.getElementById('sort-votes').style.background = mode === 'votes' ? '#1CC5BE' : 'transparent';
+    document.getElementById('sort-votes').style.color = mode === 'votes' ? '#0a0a0a' : '#555';
+    document.getElementById('sort-az').style.background = mode === 'az' ? '#1CC5BE' : 'transparent';
+    document.getElementById('sort-az').style.color = mode === 'az' ? '#0a0a0a' : '#555';
+    var list = document.getElementById('booth-list');
+    var cards = Array.from(list.querySelectorAll('.booth-card'));
+    cards.sort(function(a, b) {
+      if (mode === 'votes') return parseInt(b.dataset.votes) - parseInt(a.dataset.votes);
+      return a.dataset.name.localeCompare(b.dataset.name);
+    });
+    cards.forEach(function(c) { list.appendChild(c); });
+  };
+
+  // default to votes on load
+  window.setSort('votes');
+  var base = '/activations/${activation.slug}/';
+
+  function getVoted() { return JSON.parse(localStorage.getItem(key) || '[]'); }
+
+  function getFirstUnvisited() {
+    var voted = getVoted();
+    for (var i = 0; i < slugs.length; i++) {
+      if (!voted.includes(slugs[i])) return slugs[i];
+    }
+    return null;
+  }
+
+  function updateProgress() {
+    var voted = getVoted();
+    var count = voted.length;
+    var startBtn = document.getElementById('start-btn');
+    var startLabel = document.getElementById('start-label');
+
+    if (count > 0) {
+      document.getElementById('progress-wrap').style.display = 'block';
+      document.getElementById('progress-label').textContent = count + ' of ' + total + ' voted';
+      var pct = Math.round((count / total) * 100);
+      document.getElementById('progress-pct').textContent = pct + '%';
+      document.getElementById('progress-bar').style.width = pct + '%';
+    }
+
+    var next = getFirstUnvisited();
+    if (!next) {
+      startLabel.textContent = 'All booths voted — see results';
+      startBtn.style.background = 'rgba(28,197,190,.15)';
+      startBtn.style.color = '#1CC5BE';
+      startBtn.style.border = '1px solid rgba(28,197,190,.3)';
+    } else if (count > 0) {
+      startLabel.textContent = 'Continue voting';
+    }
+
+    voted.forEach(function(slug) {
+      var btn = document.getElementById('vbtn-' + slug);
+      var card = document.getElementById('card-' + slug);
+      if (btn) { btn.textContent = 'Voted'; btn.style.background = 'transparent'; btn.style.color = '#1CC5BE'; btn.style.border = '1px solid #1CC5BE'; }
+      if (card) { card.style.borderColor = 'rgba(28,197,190,.3)'; }
+    });
+  }
+
+  window.startVoting = function() {
+    var next = getFirstUnvisited();
+    if (next) {
+      window.location.href = base + next;
+    } else {
+      window.location.href = '/activations/${activation.slug}/winner';
+    }
+  };
+
+  updateProgress();
+})();
+</script>
 </body>
 </html>`;
 }
 
-function renderVotingPage(activation, participant, votingClosed = false) {
+function renderVotingPage(activation, participant, votingClosed = false, allParticipants = []) {
+  const slugList = JSON.stringify(allParticipants.map(p => p.slug));
   return `<!DOCTYPE html>
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<meta name="viewport" content="width=device-width,initial-scale=1.0,viewport-fit=cover">
+<meta name="theme-color" content="#0a0a0a">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <title>${participant.name} — ${activation.name}</title>
 <style>
 *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
-body{color:#f0f0f0;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;min-height:100vh;background:#0a0a0a url('/voting-bg.jpg') center/cover fixed}
+body{color:#f0f0f0;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;min-height:100vh;background:#0a0a0a url('/voting-bg.jpg') center/cover fixed;-webkit-text-size-adjust:100%}
 body::before{content:'';position:fixed;inset:0;background:rgba(0,0,0,.82);z-index:0}
 header,.hero,.container,footer{position:relative;z-index:1}
 header{padding:14px 20px;padding-top:max(14px,env(safe-area-inset-top));display:flex;align-items:center;gap:10px}
@@ -612,6 +773,10 @@ footer span{color:#333}
 </div>
 
 <div class="container">
+  ${(() => {
+    const embedUrl = spotifyEmbedUrl(participant.booth_song_url);
+    return embedUrl ? `<iframe src="${embedUrl}" width="100%" height="80" frameborder="0" allow="autoplay; clipboard-write; encrypted-media; fullscreen; picture-in-picture" loading="lazy" style="border-radius:12px;margin-bottom:16px;display:block"></iframe>` : '';
+  })()}
   <div id="vote-section">
     ${votingClosed ? `
     <div style="background:rgba(28,197,190,.08);border:1px solid rgba(28,197,190,.2);border-radius:14px;padding:24px;text-align:center;margin-bottom:16px">
@@ -623,9 +788,18 @@ footer span{color:#333}
     ` : `
     <p class="vote-label">Best Booth Award — cast your vote</p>
     <div class="vote-buttons">
-      <button class="vote-btn-primary" onclick="castVote('rules')">🔥 This Booth Rules!</button>
-      <button class="vote-btn-secondary" onclick="castVote('hell_yeah')">🤘 Hell Yeah</button>
-      <button class="vote-btn-secondary" onclick="castVote('no_thanks')">😬 Not My Vibe</button>
+      <button class="vote-btn-primary" onclick="castVote('rules')">
+        🔥 This Booth Rules!
+        <span style="display:block;font-size:12px;font-weight:500;opacity:.7;margin-top:3px">My top pick — give it the gold</span>
+      </button>
+      <button class="vote-btn-secondary" onclick="castVote('hell_yeah')">
+        🤘 Hell Yeah
+        <span style="display:block;font-size:12px;font-weight:400;opacity:.6;margin-top:3px">Solid booth, I liked it</span>
+      </button>
+      <button class="vote-btn-secondary" onclick="castVote('no_thanks')">
+        😬 Not My Vibe
+        <span style="display:block;font-size:12px;font-weight:400;opacity:.6;margin-top:3px">Not for me</span>
+      </button>
     </div>
     <p class="vote-hint">Top booth wins 2 concert tickets.</p>
     <div id="duplicate-msg">You already voted for this booth.</div>
@@ -633,6 +807,10 @@ footer span{color:#333}
   </div>
 
   <div id="thank-you">
+    <a id="next-booth-btn" href="/activations/${activation.slug}" style="display:flex;align-items:center;justify-content:center;gap:8px;background:#1CC5BE;color:#0a0a0a;border:none;border-radius:14px;padding:17px;font-size:17px;font-weight:700;text-decoration:none;margin-bottom:10px;min-height:54px">
+      Next booth <span style="font-size:20px">→</span>
+    </a>
+
     <div class="share-block">
       <h2>Vote counted.</h2>
       <p>Help ${participant.name} win — share this page.</p>
@@ -640,11 +818,11 @@ footer span{color:#333}
     </div>
 
     <div class="optin-box">
-      <h3>Get 3 SF shows every Friday by text.</h3>
-      <p>Every Friday we send 3 concerts worth going to this week — straight to your phone. Free.</p>
+      <h3>San Francisco concert recs every Friday by text.</h3>
+      <p>3 shows worth going to this week — straight to your phone. Free.</p>
       <div class="optin-row">
         <input type="tel" id="phone-input" placeholder="Your phone number" inputmode="tel">
-        <button onclick="submitOptin()">Join</button>
+        <button onclick="submitOptin()">I'm in</button>
       </div>
       <div id="optin-done">
         <p style="font-size:14px;color:#1CC5BE;font-weight:700">You're on The Line.</p>
@@ -661,6 +839,11 @@ footer span{color:#333}
   <div style="margin-top:10px;color:#666;font-size:12px;font-weight:500">Powered by Silver Glider</div>
 </footer>
 <script>
+var SLUG_LIST = ${slugList};
+var ACTIVATION_SLUG = '${activation.slug}';
+var THIS_SLUG = '${participant.slug}';
+var VOTED_KEY = 'sg_voted_' + ACTIVATION_SLUG;
+
 function getFingerprint() {
   let fp = localStorage.getItem('sg_fp');
   if (!fp) {
@@ -668,6 +851,37 @@ function getFingerprint() {
     localStorage.setItem('sg_fp', fp);
   }
   return fp;
+}
+
+function markVisited() {
+  var voted = JSON.parse(localStorage.getItem(VOTED_KEY) || '[]');
+  if (!voted.includes(THIS_SLUG)) {
+    voted.push(THIS_SLUG);
+    localStorage.setItem(VOTED_KEY, JSON.stringify(voted));
+  }
+}
+
+function getNextBooth() {
+  var voted = JSON.parse(localStorage.getItem(VOTED_KEY) || '[]');
+  var idx = SLUG_LIST.indexOf(THIS_SLUG);
+  for (var i = 1; i <= SLUG_LIST.length; i++) {
+    var next = SLUG_LIST[(idx + i) % SLUG_LIST.length];
+    if (!voted.includes(next)) return next;
+  }
+  return null;
+}
+
+function updateNextBtn() {
+  var next = getNextBooth();
+  var btn = document.getElementById('next-booth-btn');
+  if (next) {
+    btn.href = '/activations/' + ACTIVATION_SLUG + '/' + next;
+    btn.style.display = 'flex';
+  } else {
+    btn.href = '/activations/' + ACTIVATION_SLUG;
+    btn.innerHTML = 'See all booths <span style="color:#1CC5BE;font-size:18px">→</span>';
+    btn.style.display = 'flex';
+  }
 }
 
 async function castVote(vote) {
@@ -679,9 +893,15 @@ async function castVote(vote) {
   });
   const data = await res.json();
   if (data.duplicate) {
+    markVisited();
+    updateNextBtn();
+    document.getElementById('vote-section').style.display = 'none';
+    document.getElementById('thank-you').style.display = 'block';
     document.getElementById('duplicate-msg').style.display = 'block';
     return;
   }
+  markVisited();
+  updateNextBtn();
   document.getElementById('vote-section').style.display = 'none';
   document.getElementById('thank-you').style.display = 'block';
 }
@@ -770,7 +990,25 @@ ${winner ? `
 </div>
 ` : `<p style="color:#555;text-align:center">No winner yet — check back soon.</p>`}
 
-<footer>Powered by Silver Glider</footer>
+<div style="width:100%;max-width:400px;background:#111;border:1px solid #1a1a1a;border-radius:16px;padding:20px;margin-bottom:24px;position:relative;z-index:1">
+  <h3 style="font-size:15px;font-weight:600;margin-bottom:4px">Get 3 SF shows every Friday by text.</h3>
+  <p style="font-size:13px;color:#666;margin-bottom:16px">Every Friday we send 3 concerts worth going to this week — straight to your phone. Free.</p>
+  <div style="display:flex;gap:8px">
+    <input type="tel" id="winner-phone" placeholder="Your phone number" inputmode="tel" style="flex:1;background:#1a1a1a;border:1px solid #2a2a2a;color:#f0f0f0;padding:12px 14px;border-radius:8px;font-size:16px;outline:none;-webkit-appearance:none;min-height:48px">
+    <button onclick="submitWinnerOptin()" style="background:#1CC5BE;color:#0a0a0a;border:none;padding:12px 18px;border-radius:8px;font-size:15px;font-weight:700;cursor:pointer;min-height:48px;-webkit-appearance:none;white-space:nowrap">Join</button>
+  </div>
+  <div id="winner-optin-done" style="display:none;margin-top:12px">
+    <p style="font-size:14px;color:#1CC5BE;font-weight:700">You're on The Line.</p>
+    <p style="font-size:13px;color:#555;margin-top:4px">First drop hits Friday. See you there.</p>
+  </div>
+</div>
+
+<footer style="text-align:center;padding:20px">
+  <a href="/" style="display:inline-flex;align-items:center;gap:7px;text-decoration:none;opacity:.4">
+    <img src="/logo.png" alt="" style="width:18px;height:18px;object-fit:contain;filter:grayscale(1)">
+    <span style="font-size:10px;font-weight:600;color:#fff;letter-spacing:.1em;text-transform:uppercase">Silver Glider</span>
+  </a>
+</footer>
 <script>
 function shareWinner() {
   const url = '${winnerUrl}';
@@ -783,6 +1021,17 @@ function shareWinner() {
     setTimeout(() => btn.textContent = 'Share the winner', 2000);
   }
 }
+async function submitWinnerOptin() {
+  const phone = document.getElementById('winner-phone').value.trim();
+  if (!phone) return;
+  await fetch('/activations/${activation.slug}/${winner ? winner.slug : 'winner'}/optin', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ phone })
+  });
+  document.getElementById('winner-optin-done').style.display = 'block';
+  document.getElementById('winner-phone').disabled = true;
+}
 </script>
 </body>
 </html>`;
@@ -794,14 +1043,18 @@ function renderMasterQRPage(activation, landingUrl, qrDataUrl) {
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<meta name="viewport" content="width=device-width,initial-scale=1.0,viewport-fit=cover">
+<meta name="theme-color" content="#0a0a0a">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <title>${activation.name} — Master QR</title>
 <style>
-*{box-sizing:border-box;margin:0;padding:0}
-body{background:#0a0a0a;color:#f0f0f0;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;min-height:100vh;display:flex;flex-direction:column;align-items:center}
-header{width:100%;max-width:480px;padding:16px 20px}
-header a{color:#555;text-decoration:none;font-size:13px}
-.card{width:100%;max-width:420px;margin:16px auto 32px;background:#111;border:1px solid #1a1a1a;border-radius:20px;padding:32px;text-align:center}
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+body{background:#0a0a0a;color:#f0f0f0;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;min-height:100vh;display:flex;flex-direction:column;align-items:center;-webkit-text-size-adjust:100%}
+header{width:100%;max-width:480px;padding:max(16px,env(safe-area-inset-top)) max(20px,env(safe-area-inset-right)) 16px max(20px,env(safe-area-inset-left))}
+header a{color:#555;text-decoration:none;font-size:13px;min-height:44px;display:inline-flex;align-items:center}
+.card{width:100%;max-width:420px;margin:8px 16px max(32px,calc(env(safe-area-inset-bottom)+16px));background:#111;border:1px solid #1a1a1a;border-radius:20px;padding:32px;text-align:center}
 .event-label{font-size:11px;color:#555;text-transform:uppercase;letter-spacing:.1em;margin-bottom:12px}
 h1{font-size:24px;font-weight:700;margin-bottom:6px}
 .sub{font-size:14px;color:#555;margin-bottom:32px}
@@ -837,12 +1090,38 @@ footer{font-size:11px;color:#2a2a2a;padding:20px}
     <p class="qr-sub">Scan to see all booths competing</p>
   </div>
   <p class="url">${landingUrl}</p>
-  <button class="print-btn" style="margin-top:20px" onclick="window.print()">
-    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 6 2 18 2 18 9"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg>
-    Print this page
+  <button class="print-btn" id="qr-action-btn" style="margin-top:20px" onclick="handleQRAction()">
+    <span id="qr-action-icon"></span>
+    <span id="qr-action-label">Print this page</span>
   </button>
 </div>
-<footer>Powered by Silver Glider</footer>
+<footer style="text-align:center;padding:20px max(20px,env(safe-area-inset-right)) max(24px,calc(env(safe-area-inset-bottom)+12px)) max(20px,env(safe-area-inset-left))">
+  <a href="/" style="display:inline-flex;align-items:center;gap:7px;text-decoration:none;opacity:.4">
+    <img src="/logo.png" alt="" style="width:18px;height:18px;object-fit:contain;filter:grayscale(1)">
+    <span style="font-size:10px;font-weight:600;color:#fff;letter-spacing:.1em;text-transform:uppercase">Silver Glider</span>
+  </a>
+</footer>
+<script>
+(function(){
+  var isMobile=/Mobi|Android|iPhone|iPad|iPod/i.test(navigator.userAgent)||window.innerWidth<600;
+  var icon=document.getElementById('qr-action-icon');
+  var label=document.getElementById('qr-action-label');
+  if(isMobile&&navigator.share){
+    icon.innerHTML='<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/></svg>';
+    label.textContent='Share voting link';
+  } else {
+    icon.innerHTML='<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 6 2 18 2 18 9"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg>';
+    label.textContent='Print this page';
+  }
+  window.handleQRAction=function(){
+    if(isMobile&&navigator.share){
+      navigator.share({title:'${activation.name} — Vote for Best Booth',url:'${landingUrl}'}).catch(function(){});
+    } else {
+      window.print();
+    }
+  };
+})();
+</script>
 </body>
 </html>`;
 }
@@ -853,17 +1132,22 @@ function renderProfilePage(activation, participant, voteUrl, qrDataUrl) {
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<meta name="viewport" content="width=device-width,initial-scale=1.0,viewport-fit=cover">
+<meta name="theme-color" content="#0a0a0a">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <title>${participant.name} — Booth Profile</title>
 <style>
-*{box-sizing:border-box;margin:0;padding:0}
-body{background:#0a0a0a url('/profile-bg.jpg') center/cover fixed;color:#f0f0f0;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;min-height:100vh;display:flex;flex-direction:column;align-items:center}
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+body{background:#0a0a0a url('/profile-bg.jpg') center/cover fixed;color:#f0f0f0;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;min-height:100vh;display:flex;flex-direction:column;align-items:center;-webkit-text-size-adjust:100%}
 body::before{content:'';position:fixed;inset:0;background:rgba(0,0,0,.78);z-index:0}
 header,div,footer{position:relative;z-index:1}
-header{width:100%;max-width:480px;padding:16px 20px;display:flex;align-items:center;gap:10px}
-header a{color:#555;text-decoration:none;font-size:13px}
+header{width:100%;max-width:480px;padding:max(16px,env(safe-area-inset-top)) 20px 16px;display:flex;align-items:center;gap:10px}
+header a{color:#555;text-decoration:none;font-size:13px;min-height:44px;display:flex;align-items:center}
 header span{color:#2a2a2a}
-.card{width:100%;max-width:420px;margin:16px auto 32px;background:#111;border:1px solid #1a1a1a;border-radius:20px;overflow:hidden}
+.card{width:100%;max-width:420px;margin:8px 16px 32px;background:#111;border:1px solid #1a1a1a;border-radius:20px;overflow:hidden}
+@media(min-width:460px){.card{margin:16px auto 32px}}
 .booth-img{width:100%;aspect-ratio:1/1;object-fit:cover;display:block}
 .booth-placeholder{width:100%;aspect-ratio:1/1;background:#1a1a1a;display:flex;align-items:center;justify-content:center;font-size:100px;font-weight:700;color:#222}
 .card-body{padding:24px}
@@ -879,7 +1163,7 @@ h1{font-size:26px;font-weight:700;margin-bottom:8px}
 .print-btn:active{opacity:.85}
 footer{font-size:11px;color:#2a2a2a;padding:20px;text-align:center}
 @media print{
-  header,.print-btn{display:none}
+  header,.print-btn,.vendor-banner{display:none}
   body{background:#f5f0eb;color:#0a0a0a}
   .card{border:none;box-shadow:none;max-width:100%}
   .card-body{padding:16px}
@@ -897,6 +1181,11 @@ footer{font-size:11px;color:#2a2a2a;padding:20px;text-align:center}
   <a href="/activations/${activation.slug}/${participant.slug}">&larr; Back to voting</a>
 </header>
 
+<div class="vendor-banner" style="position:relative;z-index:1;width:100%;max-width:420px;margin:0 16px 12px;background:rgba(28,197,190,.08);border:1px solid rgba(28,197,190,.2);border-radius:10px;padding:10px 14px;display:flex;align-items:center;gap:10px">
+  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#1CC5BE" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+  <p style="font-size:12px;color:#1CC5BE;font-weight:600;line-height:1.4">This page is for vendors. Print or save your QR code to display at your booth.</p>
+</div>
+
 <div class="card">
   ${participant.image_url
     ? `<img class="booth-img" src="${participant.image_url}" alt="${participant.name}">`
@@ -913,18 +1202,51 @@ footer{font-size:11px;color:#2a2a2a;padding:20px;text-align:center}
       <span class="vote-link">${voteUrl}</span>
     </div>
 
-    <button class="print-btn" onclick="window.print()">
-      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 6 2 18 2 18 9"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg>
-      Print this page
+    <button class="print-btn" id="action-btn" onclick="handleAction()">
+      <span id="action-icon"></span>
+      <span id="action-label">Print this page</span>
     </button>
   </div>
 </div>
+<script>
+(function(){
+  var isMobile = /Mobi|Android|iPhone|iPad|iPod/i.test(navigator.userAgent) || window.innerWidth < 600;
+  var btn = document.getElementById('action-btn');
+  var icon = document.getElementById('action-icon');
+  var label = document.getElementById('action-label');
+  if (isMobile && navigator.share) {
+    icon.innerHTML = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/></svg>';
+    label.textContent = 'Share this booth';
+  } else if (isMobile) {
+    icon.innerHTML = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>';
+    label.textContent = 'Save QR code';
+  } else {
+    icon.innerHTML = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 6 2 18 2 18 9"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg>';
+    label.textContent = 'Print this page';
+  }
+  window.handleAction = function() {
+    if (isMobile && navigator.share) {
+      navigator.share({ title: '${participant.name} — Vote for Best Booth', url: '${voteUrl}' }).catch(function(){});
+    } else if (isMobile) {
+      var a = document.createElement('a');
+      a.href = document.querySelector('.qr-section img').src;
+      a.download = '${participant.slug}-qr.png';
+      a.click();
+    } else {
+      window.print();
+    }
+  };
+})();
+</script>
 
 <footer style="text-align:center;padding:24px 20px">
   <a href="https://instagram.com/silverglidertix" target="_blank" rel="noopener noreferrer" style="display:inline-block;color:#666;text-decoration:none">
     <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="2" width="20" height="20" rx="5" ry="5"/><circle cx="12" cy="12" r="4"/><circle cx="17.5" cy="6.5" r="1.5" fill="currentColor" stroke="none"/></svg>
   </a>
-  <div style="margin-top:10px;color:#666;font-size:12px;font-weight:500">Powered by Silver Glider</div>
+  <a href="/" style="display:inline-flex;align-items:center;gap:7px;text-decoration:none;opacity:.4;margin-top:10px">
+    <img src="/logo.png" alt="" style="width:18px;height:18px;object-fit:contain;filter:grayscale(1)">
+    <span style="font-size:10px;font-weight:600;color:#fff;letter-spacing:.1em;text-transform:uppercase">Silver Glider</span>
+  </a>
 </footer>
 </body>
 </html>`;

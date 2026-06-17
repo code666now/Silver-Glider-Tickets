@@ -177,6 +177,8 @@ tbody td{padding:10px 12px;border-bottom:1px solid #161616}
     <textarea id="edit-desc" style="margin-top:6px"></textarea>
     <label style="font-size:11px;color:#555;text-transform:uppercase;letter-spacing:.06em">Instagram Handle</label>
     <input type="text" id="edit-instagram" placeholder="@yourbooth" style="margin-top:6px">
+    <label style="font-size:11px;color:#555;text-transform:uppercase;letter-spacing:.06em;margin-top:12px">Booth Song (Spotify link)</label>
+    <input type="url" id="edit-booth-song" placeholder="https://open.spotify.com/track/..." style="margin-top:6px">
     <label style="font-size:11px;color:#555;text-transform:uppercase;letter-spacing:.06em">Image</label>
     <div style="display:flex;gap:10px;align-items:flex-start;margin-top:6px">
       <div style="flex:1">
@@ -507,6 +509,7 @@ function openEditModal(p) {
   document.getElementById('edit-desc').value = p.description || '';
   document.getElementById('edit-img-url').value = p.image_url || '';
   document.getElementById('edit-instagram').value = p.instagram_handle || '';
+  document.getElementById('edit-booth-song').value = p.booth_song_url || '';
   document.getElementById('edit-img-label-text').textContent = 'Upload new photo';
   document.getElementById('edit-img-file').value = '';
   document.getElementById('edit-msg').textContent = '';
@@ -537,6 +540,7 @@ async function saveParticipant() {
   const description = document.getElementById('edit-desc').value.trim();
   const image_url = document.getElementById('edit-img-url').value.trim();
   const instagram_handle = document.getElementById('edit-instagram').value.trim().replace(/^@/, '');
+  const booth_song_url = document.getElementById('edit-booth-song').value.trim() || null;
   const fileInput = document.getElementById('edit-img-file');
   const msgEl = document.getElementById('edit-msg');
   msgEl.textContent = 'Saving...';
@@ -546,6 +550,7 @@ async function saveParticipant() {
     const fd = new FormData();
     fd.append('name', name); fd.append('slug', slug); fd.append('description', description);
     fd.append('instagram_handle', instagram_handle);
+    if (booth_song_url) fd.append('booth_song_url', booth_song_url);
     fd.append('image', fileInput.files[0]);
     const res = await fetch(`/activations/admin/activations/participants/${id}`, {
       method: 'PUT', headers: { Authorization: `Bearer ${token}` }, body: fd
@@ -553,7 +558,7 @@ async function saveParticipant() {
     if (res.status === 401) { window.location.href = '/activations-login'; return; }
     result = await res.json();
   } else {
-    result = await api(`/activations/admin/activations/participants/${id}`, 'PUT', { name, slug, description, image_url, instagram_handle });
+    result = await api(`/activations/admin/activations/participants/${id}`, 'PUT', { name, slug, description, image_url, instagram_handle, booth_song_url });
   }
 
   if (result.error) { msgEl.textContent = result.error; return; }

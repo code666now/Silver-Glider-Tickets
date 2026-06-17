@@ -61,11 +61,12 @@ async function getParticipantBySlug(activation_id, slug) {
   return r.rows[0];
 }
 
-async function createParticipant({ activation_id, name, slug, description, image_url, status = 'approved', contact_email, contact_phone, instagram_handle }) {
+async function createParticipant({ activation_id, name, slug, description, image_url, status = 'approved', contact_email, contact_phone, instagram_handle, booth_song_url }) {
   await pool.query('ALTER TABLE sg_participants ADD COLUMN IF NOT EXISTS instagram_handle TEXT');
+  await pool.query('ALTER TABLE sg_participants ADD COLUMN IF NOT EXISTS booth_song_url TEXT');
   const r = await pool.query(
-    'INSERT INTO sg_participants (activation_id, name, slug, description, image_url, status, contact_email, contact_phone, instagram_handle) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9) RETURNING *',
-    [activation_id, name, slug, description, image_url, status, contact_email, contact_phone, instagram_handle || null]
+    'INSERT INTO sg_participants (activation_id, name, slug, description, image_url, status, contact_email, contact_phone, instagram_handle, booth_song_url) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10) RETURNING *',
+    [activation_id, name, slug, description, image_url, status, contact_email, contact_phone, instagram_handle || null, booth_song_url || null]
   );
   return r.rows[0];
 }
@@ -88,10 +89,12 @@ async function rejectParticipant(id) {
   return r.rows[0];
 }
 
-async function updateParticipant(id, { name, slug, description, image_url, instagram_handle }) {
+async function updateParticipant(id, { name, slug, description, image_url, instagram_handle, booth_song_url }) {
+  await pool.query('ALTER TABLE sg_participants ADD COLUMN IF NOT EXISTS instagram_handle TEXT');
+  await pool.query('ALTER TABLE sg_participants ADD COLUMN IF NOT EXISTS booth_song_url TEXT');
   const r = await pool.query(
-    'UPDATE sg_participants SET name=$1, slug=$2, description=$3, image_url=$4, instagram_handle=$5 WHERE id=$6 RETURNING *',
-    [name, slug, description, image_url, instagram_handle || null, id]
+    'UPDATE sg_participants SET name=$1, slug=$2, description=$3, image_url=$4, instagram_handle=$5, booth_song_url=$6 WHERE id=$7 RETURNING *',
+    [name, slug, description, image_url, instagram_handle || null, booth_song_url || null, id]
   );
   return r.rows[0];
 }

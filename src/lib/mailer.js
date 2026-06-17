@@ -66,4 +66,46 @@ async function sendOrderConfirmation({ to, buyer_first_name, event, order, ticke
   });
 }
 
-module.exports = { sendOrderConfirmation };
+async function sendBoothConfirmation({ to, boothName, activationName, profileUrl }) {
+  if (!resend) return;
+  const html = `
+<!DOCTYPE html>
+<html>
+<head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0"></head>
+<body style="background:#0a0a0a;color:#f0f0f0;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;margin:0;padding:0">
+  <table width="100%" cellpadding="0" cellspacing="0" style="max-width:520px;margin:0 auto;padding:40px 20px">
+    <tr><td>
+      <p style="font-size:12px;letter-spacing:.15em;color:#555;margin-bottom:32px;text-transform:uppercase">⬡ Silver Glider Activations</p>
+      <h1 style="font-size:26px;font-weight:700;margin-bottom:8px;color:#f0f0f0">You're in the running.</h1>
+      <p style="color:#666;font-size:15px;margin-bottom:32px">${activationName} — Best Booth Award</p>
+
+      <table width="100%" cellpadding="0" cellspacing="0" style="background:#111;border:1px solid #1a1a1a;border-radius:12px;padding:20px;margin-bottom:28px">
+        <tr><td style="padding:8px 0;border-bottom:1px solid #1a1a1a">
+          <span style="color:#555;font-size:13px">Booth</span>
+          <span style="float:right;font-size:13px;color:#f0f0f0;font-weight:600">${boothName}</span>
+        </td></tr>
+        <tr><td style="padding:8px 0">
+          <span style="color:#555;font-size:13px">Status</span>
+          <span style="float:right;font-size:13px;color:#1CC5BE;font-weight:600">Approved — live now</span>
+        </td></tr>
+      </table>
+
+      <p style="color:#666;font-size:14px;margin-bottom:20px;line-height:1.6">Your booth QR code is ready. Print it and display it at your booth so festival attendees can scan and vote for you.</p>
+
+      <a href="${profileUrl}" style="display:block;background:#1CC5BE;color:#0a0a0a;text-align:center;padding:16px;border-radius:10px;text-decoration:none;font-weight:700;font-size:16px;margin-bottom:32px">Print My QR Code</a>
+
+      <p style="color:#333;font-size:12px;text-align:center;line-height:1.6">Top booth wins 2 concert tickets.<br>Silver Glider — music discovery by text.</p>
+    </td></tr>
+  </table>
+</body>
+</html>`;
+
+  await resend.emails.send({
+    from: process.env.RESEND_FROM || 'booths@silverglidertix.com',
+    to,
+    subject: `Your booth is live — ${activationName}`,
+    html
+  });
+}
+
+module.exports = { sendOrderConfirmation, sendBoothConfirmation };

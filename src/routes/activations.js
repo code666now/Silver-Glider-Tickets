@@ -475,7 +475,7 @@ function renderActivationLanding(activation, participants) {
 <title>${activation.name}</title>
 <style>
 *{box-sizing:border-box;margin:0;padding:0}
-body{color:#f0f0f0;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;min-height:100vh;background:#0a0a0a url('/goers-bg.jpg') center/cover fixed}
+body{color:#f0f0f0;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;min-height:100vh;background:#0a0a0a url('/landing-bg.jpg') center/cover fixed}
 body::before{content:'';position:fixed;inset:0;background:rgba(0,0,0,.82);z-index:0}
 header,.prize-card,.container,footer{position:relative;z-index:1}
 header{padding:20px 16px 16px;text-align:center;border-bottom:1px solid rgba(255,255,255,.08)}
@@ -529,7 +529,12 @@ footer{text-align:center;padding:32px;font-size:12px;color:#333;border-top:1px s
 <div class="container">
   ${cards || '<p class="empty">No booths yet.</p>'}
 </div>
-<footer>Powered by Silver Glider</footer>
+<footer style="text-align:center;padding:32px 20px">
+  <a href="https://instagram.com/silverglidertix" target="_blank" rel="noopener noreferrer" style="display:inline-block;color:#666;text-decoration:none">
+    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="2" width="20" height="20" rx="5" ry="5"/><circle cx="12" cy="12" r="4"/><circle cx="17.5" cy="6.5" r="1.5" fill="currentColor" stroke="none"/></svg>
+  </a>
+  <div style="margin-top:10px;color:#666;font-size:12px;font-weight:500">Powered by Silver Glider</div>
+</footer>
 </body>
 </html>`;
 }

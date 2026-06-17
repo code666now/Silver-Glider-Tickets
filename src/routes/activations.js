@@ -857,7 +857,9 @@ function renderProfilePage(activation, participant, voteUrl, qrDataUrl) {
 <title>${participant.name} — Booth Profile</title>
 <style>
 *{box-sizing:border-box;margin:0;padding:0}
-body{background:#0a0a0a;color:#f0f0f0;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;min-height:100vh;display:flex;flex-direction:column;align-items:center}
+body{background:#0a0a0a url('/profile-bg.jpg') center/cover fixed;color:#f0f0f0;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;min-height:100vh;display:flex;flex-direction:column;align-items:center}
+body::before{content:'';position:fixed;inset:0;background:rgba(0,0,0,.78);z-index:0}
+header,div,footer{position:relative;z-index:1}
 header{width:100%;max-width:480px;padding:16px 20px;display:flex;align-items:center;gap:10px}
 header a{color:#555;text-decoration:none;font-size:13px}
 header span{color:#2a2a2a}
@@ -918,7 +920,12 @@ footer{font-size:11px;color:#2a2a2a;padding:20px;text-align:center}
   </div>
 </div>
 
-<footer>Powered by Silver Glider</footer>
+<footer style="text-align:center;padding:24px 20px">
+  <a href="https://instagram.com/silverglidertix" target="_blank" rel="noopener noreferrer" style="display:inline-block;color:#666;text-decoration:none">
+    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="2" width="20" height="20" rx="5" ry="5"/><circle cx="12" cy="12" r="4"/><circle cx="17.5" cy="6.5" r="1.5" fill="currentColor" stroke="none"/></svg>
+  </a>
+  <div style="margin-top:10px;color:#666;font-size:12px;font-weight:500">Powered by Silver Glider</div>
+</footer>
 </body>
 </html>`;
 }

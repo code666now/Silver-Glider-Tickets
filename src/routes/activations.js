@@ -336,17 +336,17 @@ header .sub{font-size:14px;color:#888;margin-top:6px}
   <div style="background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.1);border-radius:16px;padding:20px;margin-bottom:24px;backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px)">
     <p style="font-size:11px;color:#1CC5BE;font-weight:700;letter-spacing:.1em;text-transform:uppercase;margin-bottom:12px">The Prize</p>
     <div style="display:flex;flex-direction:column;gap:10px">
-      <div style="display:flex;align-items:center;gap:12px;font-size:14px">
+      <div style="display:flex;align-items:flex-start;gap:12px;font-size:14px">
         <span style="font-size:20px">🥇</span>
-        <div><span style="color:#f0f0f0;font-weight:600">1st Place</span> <span style="color:rgba(255,255,255,.4)">— 2 tickets to The Fox Theatre</span></div>
+        <div><span style="color:#f0f0f0;font-weight:600">1st Place — Silver Glider Guest List for Two</span><br><span style="color:rgba(255,255,255,.4);font-size:13px">Choose a show at The Make-Out Room, Kilowatt, or Bottom of the Hill.</span></div>
       </div>
-      <div style="display:flex;align-items:center;gap:12px;font-size:14px">
+      <div style="display:flex;align-items:flex-start;gap:12px;font-size:14px">
         <span style="font-size:20px">🥈</span>
-        <div><span style="color:#f0f0f0;font-weight:600">2nd Place</span> <span style="color:rgba(255,255,255,.4)">— 2 tickets to The Independent</span></div>
+        <div><span style="color:#f0f0f0;font-weight:600">2nd Place — Portable Suitcase Record Player</span><br><span style="color:rgba(255,255,255,.4);font-size:13px">A vintage-inspired portable record player, yours to keep.</span></div>
       </div>
-      <div style="display:flex;align-items:center;gap:12px;font-size:14px">
+      <div style="display:flex;align-items:flex-start;gap:12px;font-size:14px">
         <span style="font-size:20px">🥉</span>
-        <div><span style="color:#f0f0f0;font-weight:600">3rd Place</span> <span style="color:rgba(255,255,255,.4)">— 2 tickets to The Make Out Room</span></div>
+        <div><span style="color:#f0f0f0;font-weight:600">3rd Place — Mystery 3 Record Pack</span><br><span style="color:rgba(255,255,255,.4);font-size:13px">Three mystery records hand-picked by Silver Glider.</span></div>
       </div>
     </div>
     <p style="font-size:12px;color:rgba(255,255,255,.2);margin-top:14px;line-height:1.5">Festival attendees vote for their favorite booth. Top vote-getter wins. Silver Glider is a music discovery service — we drop concert picks straight to your phone.</p>
@@ -579,9 +579,9 @@ footer{text-align:center;padding:32px max(20px,env(safe-area-inset-right)) max(3
 
 <div class="prize-card">
   <p class="prize-label">Best Booth Award — Prizes</p>
-  <div class="prize-row"><span>🥇</span><div><div class="prize-venue">The Fox Theatre</div><div class="prize-desc">1st place — 2 concert tickets</div></div></div>
-  <div class="prize-row"><span>🥈</span><div><div class="prize-venue">The Independent</div><div class="prize-desc">2nd place — 2 concert tickets</div></div></div>
-  <div class="prize-row"><span>🥉</span><div><div class="prize-venue">The Make Out Room</div><div class="prize-desc">3rd place — 2 concert tickets</div></div></div>
+  <div class="prize-row"><span>🥇</span><div><div class="prize-venue">Silver Glider Guest List for Two</div><div class="prize-desc">1st place — The Make-Out Room, Kilowatt, or Bottom of the Hill</div></div></div>
+  <div class="prize-row"><span>🥈</span><div><div class="prize-venue">Portable Suitcase Record Player</div><div class="prize-desc">2nd place — vintage-inspired, yours to keep</div></div></div>
+  <div class="prize-row"><span>🥉</span><div><div class="prize-venue">Mystery 3 Record Pack</div><div class="prize-desc">3rd place — hand-picked by Silver Glider</div></div></div>
 </div>
 
 <div style="position:relative;z-index:1;max-width:600px;margin:16px auto 0;padding:0 16px">

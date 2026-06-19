@@ -1,10 +1,12 @@
 const pool = require('../config/db');
+const { generateSecureToken } = require('../lib/tokenGenerator');
 
 async function createTicket({ order_id, event_id, ticket_id, ticket_type, attendee_first_name, attendee_last_name }) {
+  const qr_token = generateSecureToken();
   const result = await pool.query(
-    `INSERT INTO sg_tickets (order_id, event_id, ticket_id, ticket_type, attendee_first_name, attendee_last_name)
-     VALUES ($1,$2,$3,$4,$5,$6) RETURNING *`,
-    [order_id, event_id, ticket_id, ticket_type, attendee_first_name, attendee_last_name]
+    `INSERT INTO sg_tickets (order_id, event_id, ticket_id, ticket_type, attendee_first_name, attendee_last_name, qr_token)
+     VALUES ($1,$2,$3,$4,$5,$6,$7) RETURNING *`,
+    [order_id, event_id, ticket_id, ticket_type, attendee_first_name, attendee_last_name, qr_token]
   );
   return result.rows[0];
 }

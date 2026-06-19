@@ -1,8 +1,16 @@
 const express = require('express');
+const cors = require('cors');
 const path = require('path');
 require('dotenv').config();
 
 const app = express();
+
+// Lista blanca de orígenes (CORS_ORIGINS separados por coma). Vacío = permitir todos.
+const allowedOrigins = (process.env.CORS_ORIGINS || '')
+  .split(',')
+  .map((s) => s.trim())
+  .filter(Boolean);
+app.use(cors(allowedOrigins.length ? { origin: allowedOrigins } : {}));
 
 app.use(express.json());
 app.use(express.static(path.join(__dirname, '../public')));

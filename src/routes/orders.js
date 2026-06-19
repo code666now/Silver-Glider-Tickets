@@ -1,15 +1,26 @@
 const express = require('express');
+const rateLimit = require('express-rate-limit');
 const router = express.Router();
-const { importOrder, listOrders, getOrder } = require('../controllers/ordersController');
+const { importOrder, listOrders, getOrder, voidOrder } = require('../controllers/ordersController');
 const { requireAuth, requireRole } = require('../middleware/auth');
+const { requireServiceOrAdmin } = require('../middleware/serviceAuth');
 
-router.post('/import', requireAuth, requireRole('admin'), importOrder);
+const publicLimiter = rateLimit({
+  windowMs: 60 * 1000,
+  max: 10,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { error: 'Too many requests, try again later' }
+});
+
+router.post('/import', requireServiceOrAdmin, importOrder);
+router.post('/:external_order_id/void', requireServiceOrAdmin, voidOrder);
 router.get('/', requireAuth, listOrders);
 router.get('/:order_number', requireAuth, getOrder);
 
 module.exports = router;
 
-router.post('/lookup', async (req, res) => {
+router.post('/lookup', publicLimiter, async (req, res) => {
   try {
     const { email } = req.body;
     if (!email) return res.status(400).json({ error: 'Email required' });
@@ -25,7 +36,7 @@ router.post('/lookup', async (req, res) => {
   }
 });
 
-router.post('/resend-tickets', async (req, res) => {
+router.post('/resend-tickets', publicLimiter, async (req, res) => {
   try {
     const { email } = req.body;
     if (!email) return res.status(400).json({ error: 'Email required' });

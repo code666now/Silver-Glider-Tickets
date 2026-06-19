@@ -1,4 +1,4 @@
-const { getAllEvents, getEventById, createEvent, updateEvent } = require('../db/eventsDB');
+const { getAllEvents, getEventById, createEvent, updateEvent, upsertEventByExternal } = require('../db/eventsDB');
 
 async function listEvents(req, res) {
   try {
@@ -37,4 +37,13 @@ async function editEvent(req, res) {
   }
 }
 
-module.exports = { listEvents, getEvent, addEvent, editEvent };
+async function upsertEvent(req, res) {
+  try {
+    const event = await upsertEventByExternal(req.params.external_event_id, req.body);
+    res.json(event);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+}
+
+module.exports = { listEvents, getEvent, addEvent, editEvent, upsertEvent };

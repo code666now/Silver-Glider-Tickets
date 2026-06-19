@@ -1,6 +1,7 @@
 const { Resend } = require('resend');
 
-const resend = new Resend(process.env.RESEND_API_KEY);
+// TODO: re-enable when RESEND_API_KEY is configured
+const resend = process.env.RESEND_API_KEY ? new Resend(process.env.RESEND_API_KEY) : null;
 
 async function sendOrderConfirmation({ to, buyer_first_name, event, order, tickets }) {
   const walletUrl = `${process.env.APP_URL}/wallet?order=${order.order_number}&token=${order.secure_token}`;
@@ -57,6 +58,11 @@ async function sendOrderConfirmation({ to, buyer_first_name, event, order, ticke
   </table>
 </body>
 </html>`;
+
+  if (!resend) {
+    console.log(`[mailer] Email skipped (no RESEND_API_KEY) — would send to: ${to}`);
+    return;
+  }
 
   await resend.emails.send({
     from: process.env.RESEND_FROM || 'tickets@silverglider.com',

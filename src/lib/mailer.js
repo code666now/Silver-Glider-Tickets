@@ -1,6 +1,9 @@
 const { Resend } = require('resend');
 
+<<<<<<< HEAD
 // TODO: re-enable when RESEND_API_KEY is configured
+=======
+>>>>>>> d5ae4e478b4e36f7e6c5beae9d94ddbac843794f
 const resend = process.env.RESEND_API_KEY ? new Resend(process.env.RESEND_API_KEY) : null;
 
 async function sendOrderConfirmation({ to, buyer_first_name, event, order, tickets }) {

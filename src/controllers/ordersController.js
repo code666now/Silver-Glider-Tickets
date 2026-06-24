@@ -11,11 +11,15 @@ async function importOrder(req, res) {
     buyer_first_name, buyer_last_name, buyer_email, buyer_phone,
     total_amount, quantity, ticket_type
   } = req.body;
+  console.log('[importOrder] ⬇ Petición recibida del backend principal:', {
+    external_order_id, external_event_id, event_id, buyer_email, quantity, ticket_type
+  });
   try {
     // Idempotencia: si esta orden externa ya se importó, devolver la existente.
     if (external_order_id) {
       const existing = await getOrderByExternalId(external_order_id);
       if (existing) {
+        console.log(`[importOrder] ↩ Orden externa ${external_order_id} ya importada (idempotente), devolviendo existente ${existing.order_number}`);
         const tickets = await getTicketsByOrder(existing.id);
         return res.status(200).json({ order: existing, tickets, idempotent: true });
       }
@@ -26,13 +30,16 @@ async function importOrder(req, res) {
     if (external_event_id) {
       const event = await getEventByExternalId(external_event_id);
       if (!event) {
+        console.warn(`[importOrder] ✖ Evento no mapeado para external_event_id=${external_event_id}`);
         return res.status(422).json({ error: 'event not mapped', external_event_id });
       }
       resolvedEventId = event.id;
     }
     if (!resolvedEventId) {
+      console.warn('[importOrder] ✖ Falta event_id / external_event_id');
       return res.status(400).json({ error: 'event_id or external_event_id required' });
     }
+    console.log(`[importOrder] ✓ Evento resuelto: id=${resolvedEventId}`);
 
     const order_number = generateOrderNumber();
     const secure_token = generateSecureToken();
@@ -41,6 +48,7 @@ async function importOrder(req, res) {
       event_id: resolvedEventId, order_number, buyer_first_name, buyer_last_name,
       buyer_email, buyer_phone, total_amount, quantity, secure_token, external_order_id
     });
+    console.log(`[importOrder] ✓ Orden creada: ${order.order_number} (id=${order.id})`);
 
     const tickets = [];
     for (let i = 0; i < quantity; i++) {
@@ -54,18 +62,25 @@ async function importOrder(req, res) {
       });
       tickets.push(ticket);
     }
+    console.log(`[importOrder] ✓ ${tickets.length} ticket(s) generado(s): ${tickets.map(t => t.ticket_id).join(', ')}`);
 
     if (buyer_email && process.env.RESEND_API_KEY) {
       try {
         const event = await getEventById(resolvedEventId);
+        console.log(`[importOrder] ✉ Enviando correo de confirmación a ${buyer_email}...`);
         await sendOrderConfirmation({ to: buyer_email, buyer_first_name, event, order, tickets });
+        console.log(`[importOrder] ✓ Correo de confirmación enviado a ${buyer_email}`);
       } catch (emailErr) {
-        console.error('Email failed:', emailErr.message);
+        console.error('[importOrder] ✖ Email failed:', emailErr.message);
       }
+    } else {
+      console.log(`[importOrder] ⚠ Correo omitido (buyer_email=${!!buyer_email}, RESEND_API_KEY=${!!process.env.RESEND_API_KEY})`);
     }
 
+    console.log(`[importOrder] ⬆ Respondiendo 201 con orden ${order.order_number}`);
     res.status(201).json({ order, tickets });
   } catch (err) {
+    console.error('[importOrder] ✖ Error:', err.message);
     res.status(500).json({ error: err.message });
   }
 }

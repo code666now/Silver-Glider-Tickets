@@ -2,6 +2,7 @@ const { Resend } = require('resend');
 const resend = process.env.RESEND_API_KEY ? new Resend(process.env.RESEND_API_KEY) : null;
 
 async function sendOrderConfirmation({ to, buyer_first_name, event, order, tickets }) {
+  console.log(`[mailer] → sendOrderConfirmation: to=${to}, order=${order.order_number}, event=${event && event.name}, tickets=${tickets.length}`);
   const walletUrl = `${process.env.APP_URL}/wallet?order=${order.order_number}&token=${order.secure_token}`;
 
   const ticketRows = tickets.map(t => `
@@ -62,12 +63,15 @@ async function sendOrderConfirmation({ to, buyer_first_name, event, order, ticke
     return;
   }
 
-  await resend.emails.send({
+  console.log(`[mailer] ✉ Llamando a Resend.emails.send (from=${process.env.RESEND_FROM || 'tickets@silverglider.com'}, to=${to})...`);
+  const result = await resend.emails.send({
     from: process.env.RESEND_FROM || 'tickets@silverglider.com',
     to,
     subject: `You're in — ${event.name}`,
     html
   });
+  console.log(`[mailer] ✓ Resend respondió: id=${result && result.data && result.data.id}`, result && result.error ? `error=${JSON.stringify(result.error)}` : '');
+  return result;
 }
 
 module.exports = { sendOrderConfirmation };

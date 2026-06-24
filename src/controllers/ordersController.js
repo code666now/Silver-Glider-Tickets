@@ -1,9 +1,38 @@
 const { createOrder, getOrderByNumber, getOrdersByEvent, searchOrders, getOrderByExternalId, voidOrderByExternalId } = require('../db/ordersDB');
 const { createTicket, getTicketsByOrder } = require('../db/ticketsDB');
-const { getEventById, getEventByExternalId } = require('../db/eventsDB');
+const { getEventById, getEventByExternalId, upsertEventByExternal } = require('../db/eventsDB');
 const { generateOrderNumber, generateTicketId } = require('../lib/idGenerator');
 const { generateSecureToken } = require('../lib/tokenGenerator');
 const { sendOrderConfirmation } = require('../lib/mailer');
+const { fetchEventoFromPrincipal } = require('../lib/principalClient');
+
+// Devuelve el evento local (sg_events) para un external_event_id, creándolo desde el
+// principal si todavía no existe (pull-on-import). Lanza 422 solo si tampoco existe
+// en el principal.
+async function resolveEventByExternalId(externalEventId) {
+  let event = await getEventByExternalId(externalEventId);
+  if (event) return event;
+
+  console.log(`[importOrder] evento ${externalEventId} no mapeado; resolviendo desde el principal…`);
+  const evento = await fetchEventoFromPrincipal(externalEventId);
+  if (!evento) {
+    const err = new Error('event not mapped');     // tampoco existe en el principal
+    err.statusCode = 422;
+    throw err;
+  }
+
+  // upsertEventByExternal es idempotente por external_event_id: si otro import lo creó
+  // en paralelo, el ON CONFLICT devuelve la fila existente sin duplicar.
+  event = await upsertEventByExternal(String(externalEventId), {
+    name: evento.titulo,
+    event_date: evento.fecha,
+    venue: evento.ubicacion || null,
+    capacity: null,
+    image_url: Array.isArray(evento.galeriaImagenes) ? (evento.galeriaImagenes[0] || null) : null,
+  });
+  console.log(`[importOrder] evento ${externalEventId} auto-creado en sg_events (id local ${event.id}).`);
+  return event;
+}
 
 async function importOrder(req, res) {
   const {
@@ -26,13 +55,11 @@ async function importOrder(req, res) {
     }
 
     // Resolución de evento (Opción A: por external_event_id; fallback a event_id local).
+    // Pull-on-import: si el evento externo no está mapeado, se trae del principal y se
+    // auto-crea en sg_events (Opción C). Solo devuelve 422 si tampoco existe allí.
     let resolvedEventId = event_id;
     if (external_event_id) {
-      const event = await getEventByExternalId(external_event_id);
-      if (!event) {
-        console.warn(`[importOrder] ✖ Evento no mapeado para external_event_id=${external_event_id}`);
-        return res.status(422).json({ error: 'event not mapped', external_event_id });
-      }
+      const event = await resolveEventByExternalId(external_event_id);
       resolvedEventId = event.id;
     }
     if (!resolvedEventId) {
@@ -80,6 +107,10 @@ async function importOrder(req, res) {
     console.log(`[importOrder] ⬆ Respondiendo 201 con orden ${order.order_number}`);
     res.status(201).json({ order, tickets });
   } catch (err) {
+    if (err.statusCode === 422) {
+      console.warn(`[importOrder] ✖ Evento no mapeado para external_event_id=${external_event_id}`);
+      return res.status(422).json({ error: err.message, external_event_id });
+    }
     console.error('[importOrder] ✖ Error:', err.message);
     res.status(500).json({ error: err.message });
   }

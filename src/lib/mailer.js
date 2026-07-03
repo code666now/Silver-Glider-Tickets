@@ -118,11 +118,17 @@ async function sendWelcomeEmail({ to }) {
 <body style="background:#0a0a0a;color:#f0f0f0;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;margin:0;padding:0">
   <!-- Preheader text — shows in inbox next to subject line -->
   <div style="display:none;max-height:0;overflow:hidden;mso-hide:all">3 SF shows, every Friday. We do the digging.&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;</div>
-  <table width="100%" cellpadding="0" cellspacing="0" style="max-width:520px;margin:0 auto;padding:48px 24px">
-    <tr><td style="text-align:center;padding-bottom:40px">
-      <img src="${baseUrl}/logo.png" alt="Silver Glider" width="100" height="100" style="display:inline-block">
+  <table width="100%" cellpadding="0" cellspacing="0" style="max-width:520px;margin:0 auto">
+    <tr><td style="padding:0;line-height:0;font-size:0">
+      <div style="position:relative;line-height:0;font-size:0">
+        <img src="https://images.unsplash.com/photo-1470229722913-7c0e2dbbafd3?w=520&q=80&fit=crop&h=200" alt="" width="520" style="display:block;width:100%;max-width:520px;height:200px;object-fit:cover;filter:brightness(.35)">
+        <div style="position:absolute;bottom:0;left:0;right:0;height:80px;background:linear-gradient(transparent,#0a0a0a)"></div>
+      </div>
     </td></tr>
-    <tr><td style="border-top:1px solid #1a1a1a;padding-top:40px">
+    <tr><td style="text-align:center;padding:0 24px 32px">
+      <img src="${baseUrl}/logo.png" alt="Silver Glider" width="80" height="80" style="display:inline-block;margin-top:-20px;position:relative">
+    </td></tr>
+    <tr><td style="border-top:1px solid #1a1a1a;padding:40px 24px 0">
 
       <h1 style="font-size:32px;font-weight:800;margin:0 0 20px;color:#f0f0f0;letter-spacing:-.02em;line-height:1.1">Good taste confirmed.</h1>
 

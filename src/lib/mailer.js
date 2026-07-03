@@ -119,28 +119,40 @@ async function sendWelcomeEmail({ to }) {
   <div style="display:none;max-height:0;overflow:hidden;mso-hide:all">3 SF shows, every Friday. We do the digging.&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;</div>
   <table width="100%" cellpadding="0" cellspacing="0" style="max-width:520px;margin:0 auto">
 
-    <tr><td style="padding:0;line-height:0;font-size:0">
-      <img src="${baseUrl}/concert-bg.jpg" alt="" width="520" style="display:block;width:100%;max-width:520px;height:220px;object-fit:cover;object-position:center 30%">
-    </td></tr>
-
-    <tr><td style="text-align:center;padding:24px 32px 28px;background:#0a0a0a">
-      <img src="${baseUrl}/logo.png" alt="Silver Glider" width="72" height="72" style="display:inline-block">
-    </td></tr>
-
-    <tr><td style="padding:0 32px 48px;background:#0a0a0a;border-top:1px solid #1a1a1a">
-      <div style="padding-top:40px">
-        <h1 style="font-size:32px;font-weight:800;margin:0 0 20px;color:#f0f0f0;letter-spacing:-.02em;line-height:1.1">Good taste confirmed.</h1>
-        <p style="font-size:16px;color:#ccc;line-height:1.7;margin:0 0 20px">Every Friday we'll send you 3 SF shows worth going to.</p>
-        <div style="border-left:3px solid #1CC5BE;padding-left:16px;margin-bottom:40px;border-radius:0">
-          <p style="font-size:16px;color:#1CC5BE;line-height:1.7;margin:0;font-style:italic;font-weight:500">We do the digging, you show up.</p>
-        </div>
-        <div style="background:#111;border:1px solid #1a1a1a;border-radius:12px;padding:20px 24px">
-          <p style="font-size:11px;color:#444;margin:0 0 6px;text-transform:uppercase;letter-spacing:.1em">First drop</p>
-          <p style="font-size:16px;color:#1CC5BE;margin:0;font-weight:700">3 shows. This Friday.</p>
-        </div>
+    <!-- Hero photo with gradient fade into body -->
+    <tr><td style="padding:0;line-height:0;font-size:0;background:#0a0a0a">
+      <div style="position:relative;line-height:0;font-size:0">
+        <img src="${baseUrl}/concert-bg.jpg" alt="" width="520" style="display:block;width:100%;max-width:520px;height:240px;object-fit:cover;object-position:center 30%">
+        <div style="position:absolute;bottom:0;left:0;right:0;height:120px;background:linear-gradient(transparent,#0a0a0a)"></div>
       </div>
     </td></tr>
 
+    <!-- Logo -->
+    <tr><td style="text-align:center;padding:0 32px 36px;background:#0a0a0a">
+      <img src="${baseUrl}/logo.png" alt="Silver Glider" width="64" height="64" style="display:inline-block">
+    </td></tr>
+
+    <!-- Body -->
+    <tr><td style="padding:0 32px 52px;background:#0a0a0a">
+
+      <!-- Kicker — brand promise first -->
+      <p style="font-size:13px;font-weight:600;color:#1CC5BE;letter-spacing:.06em;text-transform:uppercase;margin:0 0 16px">We do the digging, you show up.</p>
+
+      <!-- Headline -->
+      <h1 style="font-size:34px;font-weight:800;margin:0 0 16px;color:#f0f0f0;letter-spacing:-.02em;line-height:1.1">Good taste confirmed.</h1>
+
+      <!-- Body copy -->
+      <p style="font-size:16px;color:#999;line-height:1.75;margin:0 0 40px">Every Friday, 3 SF shows worth going to. No noise, no fluff. Just the ones that are actually worth your time.</p>
+
+      <!-- CTA box -->
+      <div style="background:#111;border:1px solid #1a1a1a;border-radius:12px;padding:22px 24px">
+        <p style="font-size:11px;color:#444;margin:0 0 5px;text-transform:uppercase;letter-spacing:.1em">First drop</p>
+        <p style="font-size:17px;color:#f0f0f0;margin:0;font-weight:700">3 shows. This Friday.</p>
+      </div>
+
+    </td></tr>
+
+    <!-- Footer -->
     <tr><td style="background:#161616;border-top:1px solid #222;padding:28px 32px;text-align:center">
       <p style="font-size:12px;color:#777;line-height:1.8;margin:0 0 10px">You're receiving this because you signed up at a Silver Glider activation.<br>We'll never share your email or send you anything other than concert picks.</p>
       <p style="font-size:12px;margin:0 0 10px">

@@ -20,22 +20,23 @@ Separate from the main Silver Glider ticketing app. Shares the same PostgreSQL d
 
 ## Env Vars Checklist
 
-Copy these into the Railway service → Variables tab. Use `.env.example` in the repo as reference.
+All vars are already set in Railway → `honest-beauty` project → `Silver-Glider-Activations` service → Variables tab. Copy them directly from there to the new service.
 
-| Var | Value | Notes |
-|-----|-------|-------|
-| `DATABASE_URL` | _(same as main Silver Glider app)_ | Shared Postgres — tables are prefixed `sg_` |
-| `RAILWAY_BASE_URL` | `https://[your-service].up.railway.app` | Used for QR code URLs and email links |
-| `RAILWAY_PUBLIC_DOMAIN` | `[your-service].up.railway.app` | Without `https://` |
-| `ACTIVATIONS_ADMIN_PASS` | _(ask Adrian)_ | Password to log into admin panel |
-| `ACTIVATIONS_ADMIN_SECRET` | _(ask Adrian)_ | JWT signing secret |
-| `CLOUDINARY_CLOUD_NAME` | _(from Cloudinary dashboard)_ | Booth photo uploads |
-| `CLOUDINARY_API_KEY` | _(from Cloudinary dashboard)_ | |
-| `CLOUDINARY_API_SECRET` | _(from Cloudinary dashboard)_ | |
-| `RESEND_API_KEY` | _(same as main Silver Glider app)_ | Same account, same key |
-| `RESEND_FROM` | `activations@silverglidertix.com` | Domain already verified on Resend |
-| `NODE_ENV` | `production` | |
-| `PORT` | `8080` | Railway default |
+| Var | Status | Notes |
+|-----|--------|-------|
+| `DATABASE_URL` | ✅ In Railway | Shared Postgres — tables are prefixed `sg_` |
+| `ACTIVATIONS_ADMIN_PASS` | ✅ In Railway | `activate666` — login to admin panel |
+| `ACTIVATIONS_ADMIN_SECRET` | ⚠️ In Railway as `CTIVATIONS_ADMIN_SECRET` | **Typo — missing the A.** Fix the name when copying to new service |
+| `CLOUDINARY_CLOUD_NAME` | ✅ In Railway | Booth photo uploads |
+| `CLOUDINARY_API_KEY` | ✅ In Railway | |
+| `CLOUDINARY_API_SECRET` | ✅ In Railway | |
+| `APP_URL` | ✅ In Railway | |
+| `JWT_SECRET` | ✅ In Railway | |
+| `NODE_ENV` | ✅ In Railway | |
+| `RESEND_API_KEY` | ❌ Missing — add it | Same key as main Silver Glider app |
+| `RESEND_FROM` | ❌ Missing — add it | Set to `activations@silverglidertix.com` |
+| `RAILWAY_BASE_URL` | ❌ Missing — add it | `https://[new-service].up.railway.app` — used for QR code URLs |
+| `RAILWAY_PUBLIC_DOMAIN` | ❌ Missing — add it | `[new-service].up.railway.app` (no https://) |
 
 ---
 

@@ -272,9 +272,9 @@ router.post('/:activationSlug/:participantSlug/optin', async (req, res) => {
     if (!activation) return res.status(404).json({ error: 'Not found' });
     const participant = await db.getParticipantBySlug(activation.id, req.params.participantSlug);
     if (!participant) return res.status(404).json({ error: 'Not found' });
-    const { phone } = req.body;
-    if (!phone) return res.status(400).json({ error: 'Phone required' });
-    const optin = await db.createOptin({ activation_id: activation.id, participant_id: participant.id, phone });
+    const { email } = req.body;
+    if (!email) return res.status(400).json({ error: 'Email required' });
+    const optin = await db.createOptin({ activation_id: activation.id, participant_id: participant.id, email });
     res.json({ success: true, optin });
   } catch (err) {
     res.status(500).json({ error: err.message });
@@ -814,10 +814,10 @@ footer span{color:#333}
     </div>
 
     <div class="optin-box">
-      <h3>San Francisco concert recs every Friday by text.</h3>
-      <p>3 shows worth going to this week — straight to your phone. Free.</p>
+      <h3>Get 3 SF shows every Friday by text.</h3>
+      <p>Every Friday we send 3 concerts worth going to this week — straight to your phone. Free.</p>
       <div class="optin-row">
-        <input type="tel" id="phone-input" placeholder="Your phone number" inputmode="tel">
+        <input type="email" id="email-input" placeholder="Your email" inputmode="email" autocapitalize="none">
         <button onclick="submitOptin()">I'm in</button>
       </div>
       <div id="optin-done">
@@ -915,15 +915,15 @@ function shareVote() {
 }
 
 async function submitOptin() {
-  const phone = document.getElementById('phone-input').value.trim();
-  if (!phone) return;
+  const email = document.getElementById('email-input').value.trim();
+  if (!email) return;
   await fetch(window.location.pathname + '/optin', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ phone })
+    body: JSON.stringify({ email })
   });
   document.getElementById('optin-done').style.display = 'block';
-  document.getElementById('phone-input').disabled = true;
+  document.getElementById('email-input').disabled = true;
 }
 
 const fp = getFingerprint();
@@ -990,8 +990,8 @@ ${winner ? `
   <h3 style="font-size:15px;font-weight:600;margin-bottom:4px">Get 3 SF shows every Friday by text.</h3>
   <p style="font-size:13px;color:#666;margin-bottom:16px">Every Friday we send 3 concerts worth going to this week — straight to your phone. Free.</p>
   <div style="display:flex;gap:8px">
-    <input type="tel" id="winner-phone" placeholder="Your phone number" inputmode="tel" style="flex:1;background:#1a1a1a;border:1px solid #2a2a2a;color:#f0f0f0;padding:12px 14px;border-radius:8px;font-size:16px;outline:none;-webkit-appearance:none;min-height:48px">
-    <button onclick="submitWinnerOptin()" style="background:#1CC5BE;color:#0a0a0a;border:none;padding:12px 18px;border-radius:8px;font-size:15px;font-weight:700;cursor:pointer;min-height:48px;-webkit-appearance:none;white-space:nowrap">Join</button>
+    <input type="email" id="winner-email" placeholder="Your email" inputmode="email" autocapitalize="none" style="flex:1;background:#1a1a1a;border:1px solid #2a2a2a;color:#f0f0f0;padding:12px 14px;border-radius:8px;font-size:16px;outline:none;-webkit-appearance:none;min-height:48px">
+    <button onclick="submitWinnerOptin()" style="background:#1CC5BE;color:#0a0a0a;border:none;padding:12px 18px;border-radius:8px;font-size:15px;font-weight:700;cursor:pointer;min-height:48px;-webkit-appearance:none;white-space:nowrap">I'm in</button>
   </div>
   <div id="winner-optin-done" style="display:none;margin-top:12px">
     <p style="font-size:14px;color:#1CC5BE;font-weight:700">You're on The Line.</p>
@@ -1018,15 +1018,15 @@ function shareWinner() {
   }
 }
 async function submitWinnerOptin() {
-  const phone = document.getElementById('winner-phone').value.trim();
-  if (!phone) return;
+  const email = document.getElementById('winner-email').value.trim();
+  if (!email) return;
   await fetch('/activations/${activation.slug}/${winner ? winner.slug : 'winner'}/optin', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ phone })
+    body: JSON.stringify({ email })
   });
   document.getElementById('winner-optin-done').style.display = 'block';
-  document.getElementById('winner-phone').disabled = true;
+  document.getElementById('winner-email').disabled = true;
 }
 </script>
 </body>

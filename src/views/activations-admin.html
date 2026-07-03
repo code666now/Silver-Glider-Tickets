@@ -93,7 +93,7 @@ tbody td{padding:10px 12px;border-bottom:1px solid #161616}
       <div class="tab active" onclick="showTab('participants')">Approved</div>
       <div class="tab" onclick="showTab('pending')">Pending <span id="pending-count" style="background:#ff4444;color:#fff;font-size:10px;padding:1px 6px;border-radius:10px;margin-left:4px;display:none"></span></div>
       <div class="tab" onclick="showTab('results')">Results</div>
-      <div class="tab" onclick="showTab('optins')">SMS Opt-ins</div>
+      <div class="tab" onclick="showTab('optins')">Email Opt-ins</div>
     </div>
 
     <div id="tab-participants">
@@ -146,10 +146,10 @@ tbody td{padding:10px 12px;border-bottom:1px solid #161616}
 
     <div id="tab-optins" style="display:none">
       <div class="card">
-        <p class="section-title" style="margin-bottom:16px">SMS Opt-ins</p>
+        <p class="section-title" style="margin-bottom:16px">Email Opt-ins</p>
         <table>
           <thead>
-            <tr><th>Phone</th><th>Date</th></tr>
+            <tr><th>Email</th><th>Date</th></tr>
           </thead>
           <tbody id="optins-tbody">
             <tr><td colspan="2" style="color:#444;padding:20px">Loading...</td></tr>
@@ -468,7 +468,7 @@ async function loadOptins() {
   }
   tbody.innerHTML = optins.map(o => `
     <tr>
-      <td style="font-family:monospace">${o.phone}</td>
+      <td style="font-family:monospace">${o.email || o.phone || '—'}</td>
       <td style="color:#666;font-size:12px">${new Date(o.created_at).toLocaleDateString()}</td>
     </tr>
   `).join('');

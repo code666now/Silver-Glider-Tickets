@@ -129,10 +129,11 @@ async function getResultsByActivation(activation_id) {
   return r.rows;
 }
 
-async function createOptin({ activation_id, participant_id, phone }) {
+async function createOptin({ activation_id, participant_id, email }) {
+  await pool.query('ALTER TABLE sg_activation_optins ADD COLUMN IF NOT EXISTS email TEXT');
   const r = await pool.query(
-    'INSERT INTO sg_activation_optins (activation_id, participant_id, phone) VALUES ($1,$2,$3) RETURNING *',
-    [activation_id, participant_id, phone]
+    'INSERT INTO sg_activation_optins (activation_id, participant_id, email) VALUES ($1,$2,$3) RETURNING *',
+    [activation_id, participant_id, email]
   );
   return r.rows[0];
 }

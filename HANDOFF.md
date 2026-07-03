@@ -70,6 +70,19 @@ Run through this end to end after deploy:
 
 ---
 
+## Voting Rules (as built)
+
+- Each attendee gets **5 positive votes** per activation ("This Booth Rules" / "Hell Yeah"), enforced server-side per browser fingerprint
+- "Not My Vibe" votes are recorded for analytics but don't burn a ballot and don't count toward winning
+- **Winner is ranked on positive votes only**
+- Vote dedup is a DB-level UNIQUE constraint — one vote per booth per device, race-proof
+- Votes-left counter shows on the landing page and every voting page (`GET /:slug/votes-left?fp=`)
+- Voting closes automatically at `voting_ends_at` (set in admin, checked every 60s) or via the admin "End Voting Now" button
+- Admin "Reset All Votes" button (double confirm) wipes the contest — **run this the morning of the event** to clear test data
+- Landing page HTML is cached in-memory for 30s to survive scan bursts
+
+---
+
 ## Emails (all in `src/lib/mailer.js`)
 
 | Function | Trigger | Recipient |

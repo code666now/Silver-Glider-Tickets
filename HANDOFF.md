@@ -83,6 +83,24 @@ Run through this end to end after deploy:
 
 ---
 
+## Load Test Results (2026-07-03, against production)
+
+Staged load test simulating event traffic, run against the live service on current settings (8 vCPU / 8 GB, single replica):
+
+| Stage | Requests | Concurrency | Result |
+|-------|----------|-------------|--------|
+| Booth voting pages (QR scan path) | 2,000 | 100 | 100% 200s, 26 req/s sustained |
+| Landing page (master QR, cached) | 1,000 | 100 | 100% 200s, 58 req/s |
+| votes-left lookups | 1,000 | 100 | 100% 200s |
+| Vote POSTs from unique devices | 300 | 50 | 100% 200s, all counted |
+| Mixed traffic | 1,500 | 120 | 100% 200s |
+
+Zero errors across 5,800 requests; `/health` answered in ~500ms immediately after. Event math: 20,000 interactions over 8 hours averages ~1 req/s with realistic peaks of 10–20 req/s — the test sustained 26–58 req/s, so headroom is comfortable even if every booth is scanned 1,000 times. Device vote tracking (fingerprint + DB unique constraint + 5-ballot cap) was verified end to end during the same run.
+
+**Critical sequencing rule: do not let vendors print QR codes until the final domain (`activations.silverglidertickets.com`) is live and `RAILWAY_BASE_URL` points to it.** QR codes encode the URL — codes printed before the domain cutover will be dead on event day.
+
+---
+
 ## Emails (all in `src/lib/mailer.js`)
 
 | Function | Trigger | Recipient |

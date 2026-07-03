@@ -7,7 +7,7 @@ const path = require('path');
 const multer = require('multer');
 const { uploadImage } = require('../lib/cloudinary');
 const QRCode = require('qrcode');
-const { sendBoothConfirmation, sendWelcomeEmail } = require('../lib/mailer');
+const { sendBoothConfirmation, sendWelcomeEmail, sendAdminBoothNotification } = require('../lib/mailer');
 const upload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 10 * 1024 * 1024 } });
 
 function spotifyEmbedUrl(url) {
@@ -188,6 +188,7 @@ router.post('/:activationSlug/join', upload.single('image'), async (req, res) =>
         || (process.env.RAILWAY_PUBLIC_DOMAIN ? `https://${process.env.RAILWAY_PUBLIC_DOMAIN}` : '');
       const profileUrl = `${baseUrl}/activations/${activation.slug}/${slug}/profile`;
       sendBoothConfirmation({ to: contact_email, boothName: name, activationName: activation.name, profileUrl }).catch(() => {});
+      sendAdminBoothNotification({ boothName: name, activationName: activation.name, contactEmail: contact_email, contactPhone: contact_phone, instagramHandle: instagram_handle, profileUrl }).catch(() => {});
     }
     res.json({ success: true, participant });
   } catch (err) {

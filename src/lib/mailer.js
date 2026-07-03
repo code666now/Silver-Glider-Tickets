@@ -175,4 +175,50 @@ async function sendWelcomeEmail({ to }) {
   });
 }
 
-module.exports = { sendOrderConfirmation, sendBoothConfirmation, sendWelcomeEmail };
+async function sendAdminBoothNotification({ boothName, activationName, contactEmail, contactPhone, instagramHandle, profileUrl }) {
+  if (!resend) return;
+  const html = `
+<!DOCTYPE html>
+<html>
+<head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0"></head>
+<body style="background:#0a0a0a;color:#f0f0f0;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;margin:0;padding:0">
+  <table width="100%" cellpadding="0" cellspacing="0" style="max-width:520px;margin:0 auto;padding:40px 24px">
+    <tr><td>
+      <p style="font-size:12px;letter-spacing:.15em;color:#444;text-transform:uppercase;margin-bottom:24px">⬡ Silver Glider Activations</p>
+      <h1 style="font-size:22px;font-weight:700;margin:0 0 6px;color:#f0f0f0">New booth registered.</h1>
+      <p style="font-size:14px;color:#555;margin:0 0 28px">${activationName}</p>
+
+      <table width="100%" cellpadding="0" cellspacing="0" style="background:#111;border:1px solid #1a1a1a;border-radius:12px;padding:20px">
+        <tr><td style="padding:8px 0;border-bottom:1px solid #1a1a1a">
+          <span style="color:#555;font-size:13px">Booth</span>
+          <span style="float:right;font-size:13px;color:#f0f0f0;font-weight:600">${boothName}</span>
+        </td></tr>
+        <tr><td style="padding:8px 0;border-bottom:1px solid #1a1a1a">
+          <span style="color:#555;font-size:13px">Email</span>
+          <span style="float:right;font-size:13px;color:#f0f0f0">${contactEmail || '—'}</span>
+        </td></tr>
+        <tr><td style="padding:8px 0;border-bottom:1px solid #1a1a1a">
+          <span style="color:#555;font-size:13px">Phone</span>
+          <span style="float:right;font-size:13px;color:#f0f0f0">${contactPhone || '—'}</span>
+        </td></tr>
+        <tr><td style="padding:8px 0">
+          <span style="color:#555;font-size:13px">Instagram</span>
+          <span style="float:right;font-size:13px;color:#f0f0f0">${instagramHandle ? '@' + instagramHandle.replace(/^@/, '') : '—'}</span>
+        </td></tr>
+      </table>
+
+      <a href="${profileUrl}" style="display:block;background:#1CC5BE;color:#0a0a0a;text-align:center;padding:14px;border-radius:10px;text-decoration:none;font-weight:700;font-size:15px;margin-top:24px">View Booth Profile</a>
+    </td></tr>
+  </table>
+</body>
+</html>`;
+
+  await resend.emails.send({
+    from: process.env.RESEND_FROM || 'activations@silverglidertix.com',
+    to: 'rosewoodmarketin@gmail.com',
+    subject: `New booth: ${boothName} — ${activationName}`,
+    html
+  });
+}
+
+module.exports = { sendOrderConfirmation, sendBoothConfirmation, sendWelcomeEmail, sendAdminBoothNotification };

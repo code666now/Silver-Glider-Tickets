@@ -116,6 +116,8 @@ async function sendWelcomeEmail({ to }) {
 <html>
 <head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0"></head>
 <body style="background:#0a0a0a;color:#f0f0f0;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;margin:0;padding:0">
+  <!-- Preheader text — shows in inbox next to subject line -->
+  <div style="display:none;max-height:0;overflow:hidden;mso-hide:all">3 SF shows, every Friday. We do the digging.&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;</div>
   <table width="100%" cellpadding="0" cellspacing="0" style="max-width:520px;margin:0 auto;padding:48px 24px">
     <tr><td style="text-align:center;padding-bottom:40px">
       <img src="${baseUrl}/logo.png" alt="Silver Glider" width="100" height="100" style="display:inline-block">
@@ -124,8 +126,11 @@ async function sendWelcomeEmail({ to }) {
 
       <h1 style="font-size:32px;font-weight:800;margin:0 0 20px;color:#f0f0f0;letter-spacing:-.02em;line-height:1.1">Good taste confirmed.</h1>
 
-      <p style="font-size:16px;color:#888;line-height:1.7;margin:0 0 6px">Every Friday we'll send you 3 SF shows worth going to.</p>
-      <p style="font-size:15px;color:#555;line-height:1.7;margin:0 0 40px;font-style:italic">We do the digging, you show up.</p>
+      <p style="font-size:16px;color:#888;line-height:1.7;margin:0 0 20px">Every Friday we'll send you 3 SF shows worth going to.</p>
+
+      <div style="border-left:3px solid #1CC5BE;padding-left:16px;margin-bottom:40px">
+        <p style="font-size:16px;color:#1CC5BE;line-height:1.7;margin:0;font-style:italic;font-weight:500">We do the digging, you show up.</p>
+      </div>
 
       <div style="background:#111;border:1px solid #1a1a1a;border-radius:12px;padding:20px 24px;margin-bottom:48px">
         <p style="font-size:11px;color:#444;margin:0 0 6px;text-transform:uppercase;letter-spacing:.1em">First drop</p>

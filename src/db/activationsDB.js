@@ -155,6 +155,11 @@ async function castVote({ participant_id, activation_id, vote, browser_fingerpri
   return { duplicate: false, vote: r.rows[0] };
 }
 
+async function resetVotes(activation_id) {
+  const r = await pool.query('DELETE FROM sg_activation_votes WHERE activation_id = $1', [activation_id]);
+  return { deleted: r.rowCount };
+}
+
 async function getResultsByActivation(activation_id) {
   const r = await pool.query(`
     SELECT
@@ -203,5 +208,5 @@ module.exports = {
   setVotingEndsAt, autoCloseExpired, getWinner, countPositiveVotes,
   getParticipantsByActivation, getParticipantBySlug, createParticipant, updateParticipant,
   getPendingParticipants, approveParticipant, rejectParticipant,
-  castVote, getResultsByActivation, createOptin, getOptinsByActivation, getOptinByEmail
+  castVote, getResultsByActivation, createOptin, getOptinsByActivation, getOptinByEmail, resetVotes
 };

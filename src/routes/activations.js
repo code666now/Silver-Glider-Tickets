@@ -250,6 +250,16 @@ router.post('/admin/activations/:id/close-voting', requireActivationsAdmin, asyn
   }
 });
 
+router.post('/admin/activations/:id/reset-votes', requireActivationsAdmin, async (req, res) => {
+  try {
+    const result = await db.resetVotes(req.params.id);
+    landingCache.clear();
+    res.json(result);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
 router.post('/admin/activations/:id/set-voting-ends', requireActivationsAdmin, async (req, res) => {
   try {
     const { voting_ends_at } = req.body;

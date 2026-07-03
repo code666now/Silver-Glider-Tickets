@@ -115,43 +115,53 @@ async function sendWelcomeEmail({ to }) {
 <!DOCTYPE html>
 <html>
 <head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0"></head>
-<body style="background:#0a0a0a;color:#f0f0f0;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;margin:0;padding:0">
+<body style="margin:0;padding:0;background:#0a0a0a">
   <!-- Preheader text — shows in inbox next to subject line -->
   <div style="display:none;max-height:0;overflow:hidden;mso-hide:all">3 SF shows, every Friday. We do the digging.&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;</div>
-  <table width="100%" cellpadding="0" cellspacing="0" style="max-width:520px;margin:0 auto">
-    <tr><td style="padding:0;line-height:0;font-size:0">
-      <div style="position:relative;line-height:0;font-size:0">
-        <img src="https://images.unsplash.com/photo-1470229722913-7c0e2dbbafd3?w=520&q=80&fit=crop&h=200" alt="" width="520" style="display:block;width:100%;max-width:520px;height:200px;object-fit:cover;filter:brightness(.35)">
-        <div style="position:absolute;bottom:0;left:0;right:0;height:80px;background:linear-gradient(transparent,#0a0a0a)"></div>
+
+  <!-- Full-email background image wrapper -->
+  <table width="100%" cellpadding="0" cellspacing="0" border="0" style="min-height:100%">
+    <tr><td align="center" style="padding:0;position:relative">
+
+      <!-- Background image (full width, covers entire email height) -->
+      <div style="position:absolute;top:0;left:0;right:0;bottom:0;overflow:hidden;z-index:0">
+        <img src="${baseUrl}/concert-bg.jpg" alt="" style="width:100%;height:100%;object-fit:cover;object-position:center top;filter:brightness(.22);display:block">
       </div>
-    </td></tr>
-    <tr><td style="text-align:center;padding:0 24px 32px">
-      <img src="${baseUrl}/logo.png" alt="Silver Glider" width="80" height="80" style="display:inline-block;margin-top:-20px;position:relative">
-    </td></tr>
-    <tr><td style="border-top:1px solid #1a1a1a;padding:40px 24px 0">
+      <!-- Dark gradient fade at bottom so content stays readable -->
+      <div style="position:absolute;bottom:0;left:0;right:0;height:40%;background:linear-gradient(transparent,rgba(10,10,10,.95));z-index:1"></div>
 
-      <h1 style="font-size:32px;font-weight:800;margin:0 0 20px;color:#f0f0f0;letter-spacing:-.02em;line-height:1.1">Good taste confirmed.</h1>
+      <!-- Content on top -->
+      <table width="100%" cellpadding="0" cellspacing="0" border="0" style="max-width:520px;margin:0 auto;position:relative;z-index:2">
+        <tr><td style="padding:48px 32px 0;text-align:center">
+          <img src="${baseUrl}/logo.png" alt="Silver Glider" width="80" height="80" style="display:inline-block">
+        </td></tr>
+        <tr><td style="padding:40px 32px 0;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;color:#f0f0f0">
 
-      <p style="font-size:16px;color:#888;line-height:1.7;margin:0 0 20px">Every Friday we'll send you 3 SF shows worth going to.</p>
+          <h1 style="font-size:32px;font-weight:800;margin:0 0 20px;color:#f0f0f0;letter-spacing:-.02em;line-height:1.1">Good taste confirmed.</h1>
 
-      <div style="border-left:3px solid #1CC5BE;padding-left:16px;margin-bottom:40px">
-        <p style="font-size:16px;color:#1CC5BE;line-height:1.7;margin:0;font-style:italic;font-weight:500">We do the digging, you show up.</p>
-      </div>
+          <p style="font-size:16px;color:#ccc;line-height:1.7;margin:0 0 20px">Every Friday we'll send you 3 SF shows worth going to.</p>
 
-      <div style="background:#111;border:1px solid #1a1a1a;border-radius:12px;padding:20px 24px;margin-bottom:48px">
-        <p style="font-size:11px;color:#444;margin:0 0 6px;text-transform:uppercase;letter-spacing:.1em">First drop</p>
-        <p style="font-size:16px;color:#1CC5BE;margin:0;font-weight:700">3 shows. This Friday.</p>
-      </div>
+          <div style="border-left:3px solid #1CC5BE;padding-left:16px;margin-bottom:40px">
+            <p style="font-size:16px;color:#1CC5BE;line-height:1.7;margin:0;font-style:italic;font-weight:500">We do the digging, you show up.</p>
+          </div>
 
-      <div style="border-top:1px solid #1a1a1a;padding-top:32px;text-align:center">
-        <p style="font-size:12px;color:#555;line-height:1.8;margin:0 0 12px">You're receiving this because you signed up at a Silver Glider activation.<br>We'll never share your email or send you anything other than concert picks.</p>
-        <p style="font-size:12px;margin:0 0 12px">
-          <a href="${baseUrl}/unsubscribe?email=${encodeURIComponent(to)}" style="color:#555;text-decoration:underline">Unsubscribe</a>
-          <span style="color:#333;margin:0 8px">·</span>
-          <a href="https://silverglidertickets.com" style="color:#555;text-decoration:none">silverglidertickets.com</a>
-        </p>
-        <p style="font-size:11px;color:#444;margin:0">Silver Glider · 490 Post St, Suite 500, San Francisco, CA 94102</p>
-      </div>
+          <div style="background:rgba(0,0,0,.55);border:1px solid rgba(255,255,255,.08);border-radius:12px;padding:20px 24px;margin-bottom:48px;backdrop-filter:blur(4px)">
+            <p style="font-size:11px;color:#888;margin:0 0 6px;text-transform:uppercase;letter-spacing:.1em">First drop</p>
+            <p style="font-size:16px;color:#1CC5BE;margin:0;font-weight:700">3 shows. This Friday.</p>
+          </div>
+
+          <div style="border-top:1px solid rgba(255,255,255,.08);padding-top:32px;padding-bottom:48px;text-align:center">
+            <p style="font-size:12px;color:#888;line-height:1.8;margin:0 0 12px">You're receiving this because you signed up at a Silver Glider activation.<br>We'll never share your email or send you anything other than concert picks.</p>
+            <p style="font-size:12px;margin:0 0 12px">
+              <a href="${baseUrl}/unsubscribe?email=${encodeURIComponent(to)}" style="color:#888;text-decoration:underline">Unsubscribe</a>
+              <span style="color:#444;margin:0 8px">·</span>
+              <a href="https://silverglidertickets.com" style="color:#888;text-decoration:none">silverglidertickets.com</a>
+            </p>
+            <p style="font-size:11px;color:#666;margin:0">Silver Glider · 490 Post St, Suite 500, San Francisco, CA 94102</p>
+          </div>
+
+        </td></tr>
+      </table>
 
     </td></tr>
   </table>

@@ -7,7 +7,7 @@ const path = require('path');
 const multer = require('multer');
 const { uploadImage } = require('../lib/cloudinary');
 const QRCode = require('qrcode');
-const { sendBoothConfirmation } = require('../lib/mailer');
+const { sendBoothConfirmation, sendWelcomeEmail } = require('../lib/mailer');
 const upload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 10 * 1024 * 1024 } });
 
 function spotifyEmbedUrl(url) {
@@ -277,6 +277,7 @@ router.post('/:activationSlug/:participantSlug/optin', async (req, res) => {
     const { email } = req.body;
     if (!email) return res.status(400).json({ error: 'Email required' });
     const optin = await db.createOptin({ activation_id: activation.id, participant_id: participant.id, email });
+    sendWelcomeEmail({ to: email }).catch(() => {});
     res.json({ success: true, optin });
   } catch (err) {
     res.status(500).json({ error: err.message });

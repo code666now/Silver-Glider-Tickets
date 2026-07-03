@@ -108,4 +108,40 @@ async function sendBoothConfirmation({ to, boothName, activationName, profileUrl
   });
 }
 
-module.exports = { sendOrderConfirmation, sendBoothConfirmation };
+async function sendWelcomeEmail({ to }) {
+  if (!resend) return;
+  const html = `
+<!DOCTYPE html>
+<html>
+<head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0"></head>
+<body style="background:#0a0a0a;color:#f0f0f0;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;margin:0;padding:0">
+  <table width="100%" cellpadding="0" cellspacing="0" style="max-width:520px;margin:0 auto;padding:48px 24px">
+    <tr><td>
+
+      <p style="font-size:12px;letter-spacing:.15em;color:#444;margin-bottom:48px;text-transform:uppercase">⬡ Silver Glider</p>
+
+      <h1 style="font-size:32px;font-weight:800;margin:0 0 16px;color:#f0f0f0;letter-spacing:-.02em">You're on The Line.</h1>
+
+      <p style="font-size:16px;color:#888;line-height:1.7;margin:0 0 48px">Every Friday — 3 concerts worth going to this week in San Francisco, straight to your inbox. Free.</p>
+
+      <div style="border-top:1px solid #1a1a1a;padding-top:32px;margin-bottom:32px">
+        <p style="font-size:13px;color:#444;margin:0 0 8px;text-transform:uppercase;letter-spacing:.08em">First drop</p>
+        <p style="font-size:15px;color:#f0f0f0;margin:0;font-weight:600">This Friday</p>
+      </div>
+
+      <p style="font-size:13px;color:#2a2a2a;margin:0">Silver Glider · San Francisco</p>
+
+    </td></tr>
+  </table>
+</body>
+</html>`;
+
+  await resend.emails.send({
+    from: process.env.RESEND_FROM || 'activations@silverglidertix.com',
+    to,
+    subject: `You're on The Line — Silver Glider`,
+    html
+  });
+}
+
+module.exports = { sendOrderConfirmation, sendBoothConfirmation, sendWelcomeEmail };

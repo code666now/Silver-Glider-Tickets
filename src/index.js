@@ -20,6 +20,20 @@ app.get('/doorlist', (req, res) => res.sendFile(path.resolve(__dirname, 'views',
 app.get('/admin', (req, res) => res.sendFile(path.resolve(__dirname, 'views', 'admin.html')));
 app.get('/tickets', (req, res) => res.sendFile(path.resolve(__dirname, 'views', 'tickets.html')));
 
+app.get('/unsubscribe', async (req, res) => {
+  const pool = require('./config/db');
+  const { email } = req.query;
+  if (!email) return res.status(400).send('Missing email');
+  try {
+    await pool.query('UPDATE sg_activation_optins SET unsubscribed=TRUE WHERE email=$1', [email]).catch(() => {});
+    await pool.query('ALTER TABLE sg_activation_optins ADD COLUMN IF NOT EXISTS unsubscribed BOOLEAN DEFAULT FALSE').catch(() => {});
+    await pool.query('UPDATE sg_activation_optins SET unsubscribed=TRUE WHERE email=$1', [email]);
+    res.send(`<!DOCTYPE html><html><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0"><title>Unsubscribed</title></head><body style="background:#0a0a0a;color:#f0f0f0;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;display:flex;align-items:center;justify-content:center;min-height:100vh;margin:0;text-align:center;padding:24px"><div><p style="font-size:11px;letter-spacing:.15em;color:#444;text-transform:uppercase;margin-bottom:24px">⬡ Silver Glider</p><h1 style="font-size:24px;font-weight:700;margin-bottom:12px">You're unsubscribed.</h1><p style="color:#666;font-size:15px">You won't receive any more emails from us.</p></div></body></html>`);
+  } catch (err) {
+    res.status(500).send('Something went wrong. Please try again.');
+  }
+});
+
 app.get('/health', async (req, res) => {
   const pool = require('./config/db');
   try {

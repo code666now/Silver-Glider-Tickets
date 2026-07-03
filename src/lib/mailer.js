@@ -123,17 +123,25 @@ async function sendWelcomeEmail({ to }) {
     </td></tr>
     <tr><td style="border-top:1px solid #1a1a1a;padding-top:40px">
 
-      <h1 style="font-size:32px;font-weight:800;margin:0 0 20px;color:#f0f0f0;letter-spacing:-.02em;line-height:1.1">Good taste confirmed.</h1>
+      <h1 style="font-size:32px;font-weight:800;margin:0 0 20px;color:#f0f0f0;letter-spacing:-.02em;line-height:1.1">Thank you for joining our email list.</h1>
 
-      <p style="font-size:16px;color:#888;line-height:1.7;margin:0 0 12px">Every Friday, 3 SF shows worth your weekend.</p>
+      <p style="font-size:16px;color:#888;line-height:1.7;margin:0 0 12px">Every Friday we'll send you 3 SF shows worth going to.</p>
       <p style="font-size:16px;color:#888;line-height:1.7;margin:0 0 40px">We do the digging, you show up.</p>
 
-      <div style="background:#111;border:1px solid #1a1a1a;border-radius:12px;padding:20px 24px;margin-bottom:40px">
-        <p style="font-size:11px;color:#444;margin:0 0 6px;text-transform:uppercase;letter-spacing:.1em">See you</p>
+      <div style="background:#111;border:1px solid #1a1a1a;border-radius:12px;padding:20px 24px;margin-bottom:48px">
+        <p style="font-size:11px;color:#444;margin:0 0 6px;text-transform:uppercase;letter-spacing:.1em">First email arrives</p>
         <p style="font-size:16px;color:#1CC5BE;margin:0;font-weight:700">This Friday</p>
       </div>
 
-      <p style="font-size:12px;color:#333;margin:0;text-align:center">Silver Glider · San Francisco · <a href="https://silverglidertickets.com" style="color:#333">silverglidertickets.com</a></p>
+      <div style="border-top:1px solid #111;padding-top:32px;text-align:center">
+        <p style="font-size:12px;color:#333;line-height:1.8;margin:0 0 12px">You're receiving this because you signed up at a Silver Glider activation.<br>We'll never share your email or send you anything other than concert picks.</p>
+        <p style="font-size:12px;margin:0 0 12px">
+          <a href="${baseUrl}/unsubscribe?email=${encodeURIComponent(to)}" style="color:#444;text-decoration:underline">Unsubscribe</a>
+          <span style="color:#222;margin:0 8px">·</span>
+          <a href="https://silverglidertickets.com" style="color:#444;text-decoration:none">silverglidertickets.com</a>
+        </p>
+        <p style="font-size:11px;color:#222;margin:0">Silver Glider · 540 Post St, San Francisco, CA 94102</p>
+      </div>
 
     </td></tr>
   </table>

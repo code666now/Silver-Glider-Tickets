@@ -5,17 +5,16 @@ const { requireActivationsAdmin } = require('../middleware/auth');
 const jwt = require('jsonwebtoken');
 const path = require('path');
 const multer = require('multer');
-const cron = require('node-cron');
 const { uploadImage } = require('../lib/cloudinary');
 const QRCode = require('qrcode');
 const { sendBoothConfirmation, sendWelcomeEmail, sendAdminBoothNotification } = require('../lib/mailer');
 const upload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 10 * 1024 * 1024 } });
 
-// Auto-close activations whose voting_ends_at has passed
-cron.schedule('* * * * *', async () => {
+// Auto-close activations whose voting_ends_at has passed — runs every 60 seconds
+setInterval(async () => {
   const closed = await db.autoCloseExpired().catch(() => []);
   if (closed.length) console.log('Auto-closed voting for:', closed.map(a => a.name).join(', '));
-});
+}, 60 * 1000);
 
 function spotifyEmbedUrl(url) {
   if (!url) return null;

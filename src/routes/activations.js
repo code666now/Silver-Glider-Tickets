@@ -177,6 +177,8 @@ router.post('/:activationSlug/join', upload.single('image'), async (req, res) =>
       image_url = result.secure_url;
     }
     const slug = name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
+    const existing = await db.getParticipantBySlug(activation.id, slug);
+    if (existing) return res.status(400).json({ error: 'A booth with that name is already registered. Try adding your location or a unique word to your booth name.' });
     const participant = await db.createParticipant({
       activation_id: activation.id, name, slug, description, image_url,
       status: 'approved', contact_email, contact_phone, instagram_handle, booth_song_url: booth_song_url || null
@@ -395,12 +397,6 @@ header .sub{font-size:14px;color:#888;margin-top:6px}
       <input type="text" id="instagram-handle" placeholder="Instagram handle">
       <span class="field-label">Instagram handle (optional)</span>
     </div>
-
-    <div class="field">
-      <input type="url" id="booth-song-url" placeholder="Booth song" inputmode="url" autocapitalize="none">
-      <span class="field-label">Booth song — Spotify link (optional)</span>
-    </div>
-    <p class="field-hint" style="margin-top:5px;padding-left:2px;font-size:11px;color:rgba(255,255,255,.2)">Paste a Spotify track link. Plays on your voting page.</p>
 
     <div class="field">
       <input type="email" id="contact-email" placeholder="Email">

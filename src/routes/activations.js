@@ -814,8 +814,8 @@ footer span{color:#333}
     </div>
 
     <div class="optin-box">
-      <h3>Get 3 SF shows every Friday by text.</h3>
-      <p>Every Friday we send 3 concerts worth going to this week — straight to your phone. Free.</p>
+      <h3>Get 3 SF shows every Friday by email.</h3>
+      <p>Every Friday we send 3 concerts worth going to this week — straight to your inbox. Free.</p>
       <div class="optin-row">
         <input type="email" id="email-input" placeholder="Your email" inputmode="email" autocapitalize="none">
         <button onclick="submitOptin()">I'm in</button>
@@ -987,8 +987,8 @@ ${winner ? `
 ` : `<p style="color:#555;text-align:center">No winner yet — check back soon.</p>`}
 
 <div style="width:100%;max-width:400px;background:#111;border:1px solid #1a1a1a;border-radius:16px;padding:20px;margin-bottom:24px;position:relative;z-index:1">
-  <h3 style="font-size:15px;font-weight:600;margin-bottom:4px">Get 3 SF shows every Friday by text.</h3>
-  <p style="font-size:13px;color:#666;margin-bottom:16px">Every Friday we send 3 concerts worth going to this week — straight to your phone. Free.</p>
+  <h3 style="font-size:15px;font-weight:600;margin-bottom:4px">Get 3 SF shows every Friday by email.</h3>
+  <p style="font-size:13px;color:#666;margin-bottom:16px">Every Friday we send 3 concerts worth going to this week — straight to your inbox. Free.</p>
   <div style="display:flex;gap:8px">
     <input type="email" id="winner-email" placeholder="Your email" inputmode="email" autocapitalize="none" style="flex:1;background:#1a1a1a;border:1px solid #2a2a2a;color:#f0f0f0;padding:12px 14px;border-radius:8px;font-size:16px;outline:none;-webkit-appearance:none;min-height:48px">
     <button onclick="submitWinnerOptin()" style="background:#1CC5BE;color:#0a0a0a;border:none;padding:12px 18px;border-radius:8px;font-size:15px;font-weight:700;cursor:pointer;min-height:48px;-webkit-appearance:none;white-space:nowrap">I'm in</button>

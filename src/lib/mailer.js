@@ -129,7 +129,7 @@ async function sendWelcomeEmail({ to }) {
 
       <div style="background:#111;border:1px solid #1a1a1a;border-radius:12px;padding:20px 24px;margin-bottom:48px">
         <p style="font-size:11px;color:#444;margin:0 0 6px;text-transform:uppercase;letter-spacing:.1em">First drop</p>
-        <p style="font-size:16px;color:#1CC5BE;margin:0;font-weight:700">3 shows — this Friday</p>
+        <p style="font-size:16px;color:#1CC5BE;margin:0;font-weight:700">3 shows. This Friday.</p>
       </div>
 
       <div style="border-top:1px solid #1a1a1a;padding-top:32px;text-align:center">

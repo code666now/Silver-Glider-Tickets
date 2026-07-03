@@ -5,10 +5,17 @@ const { requireActivationsAdmin } = require('../middleware/auth');
 const jwt = require('jsonwebtoken');
 const path = require('path');
 const multer = require('multer');
+const cron = require('node-cron');
 const { uploadImage } = require('../lib/cloudinary');
 const QRCode = require('qrcode');
 const { sendBoothConfirmation, sendWelcomeEmail, sendAdminBoothNotification } = require('../lib/mailer');
 const upload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 10 * 1024 * 1024 } });
+
+// Auto-close activations whose voting_ends_at has passed
+cron.schedule('* * * * *', async () => {
+  const closed = await db.autoCloseExpired().catch(() => []);
+  if (closed.length) console.log('Auto-closed voting for:', closed.map(a => a.name).join(', '));
+});
 
 function spotifyEmbedUrl(url) {
   if (!url) return null;
@@ -215,6 +222,16 @@ router.post('/admin/activations/:id/close-voting', requireActivationsAdmin, asyn
   }
 });
 
+router.post('/admin/activations/:id/set-voting-ends', requireActivationsAdmin, async (req, res) => {
+  try {
+    const { voting_ends_at } = req.body;
+    const activation = await db.setVotingEndsAt(req.params.id, voting_ends_at || null);
+    res.json(activation);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
 router.get('/:activationSlug/winner', async (req, res) => {
   const activation = await db.getActivationBySlug(req.params.activationSlug);
   if (!activation) return res.status(404).send('Not found');
@@ -260,7 +277,8 @@ router.post('/:activationSlug/:participantSlug/vote', voteRateLimit, async (req,
     const participant = await db.getParticipantBySlug(activation.id, req.params.participantSlug);
     if (!participant) return res.status(404).json({ error: 'Not found' });
     const { vote, fingerprint } = req.body;
-    if (activation.voting_closed) return res.status(403).json({ error: 'Voting is closed' });
+    const votingOver = activation.voting_closed || (activation.voting_ends_at && new Date(activation.voting_ends_at) <= new Date());
+    if (votingOver) return res.status(403).json({ error: 'Voting is closed' });
     if (!['rules', 'hell_yeah', 'no_thanks'].includes(vote)) return res.status(400).json({ error: 'Invalid vote' });
     const result = await db.castVote({ participant_id: participant.id, activation_id: activation.id, vote, browser_fingerprint: fingerprint });
     res.json(result);

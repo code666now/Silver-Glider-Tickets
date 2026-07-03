@@ -6,6 +6,7 @@ async function runMigrations() {
   await pool.query('ALTER TABLE sg_participants ADD COLUMN IF NOT EXISTS booth_song_url TEXT');
   await pool.query('ALTER TABLE sg_activation_optins ADD COLUMN IF NOT EXISTS email TEXT');
   await pool.query('ALTER TABLE sg_activations ADD COLUMN IF NOT EXISTS voting_closed BOOLEAN DEFAULT FALSE');
+  await pool.query('ALTER TABLE sg_activations ADD COLUMN IF NOT EXISTS voting_ends_at TIMESTAMPTZ');
   await pool.query('CREATE INDEX IF NOT EXISTS idx_votes_participant_fingerprint ON sg_activation_votes (participant_id, browser_fingerprint)');
 }
 runMigrations().catch(err => console.error('Migration error:', err.message));
@@ -28,12 +29,29 @@ async function createActivation({ name, slug, description }) {
   return r.rows[0];
 }
 
-async function updateActivation(id, { name, description, active }) {
+async function updateActivation(id, { name, description, active, voting_ends_at }) {
   const r = await pool.query(
-    'UPDATE sg_activations SET name=$1, description=$2, active=$3 WHERE id=$4 RETURNING *',
-    [name, description, active, id]
+    'UPDATE sg_activations SET name=$1, description=$2, active=$3, voting_ends_at=$4 WHERE id=$5 RETURNING *',
+    [name, description, active, voting_ends_at || null, id]
   );
   return r.rows[0];
+}
+
+async function setVotingEndsAt(id, voting_ends_at) {
+  const r = await pool.query(
+    'UPDATE sg_activations SET voting_ends_at=$1 WHERE id=$2 RETURNING *',
+    [voting_ends_at, id]
+  );
+  return r.rows[0];
+}
+
+async function autoCloseExpired() {
+  const r = await pool.query(
+    `UPDATE sg_activations SET voting_closed=TRUE
+     WHERE voting_closed=FALSE AND voting_ends_at IS NOT NULL AND voting_ends_at <= NOW()
+     RETURNING id, name`
+  );
+  return r.rows;
 }
 
 async function closeVoting(id) {
@@ -157,7 +175,8 @@ async function getOptinsByActivation(activation_id) {
 }
 
 module.exports = {
-  getActivationBySlug, getAllActivations, createActivation, updateActivation, closeVoting, getWinner,
+  getActivationBySlug, getAllActivations, createActivation, updateActivation, closeVoting,
+  setVotingEndsAt, autoCloseExpired, getWinner,
   getParticipantsByActivation, getParticipantBySlug, createParticipant, updateParticipant,
   getPendingParticipants, approveParticipant, rejectParticipant,
   castVote, getResultsByActivation, createOptin, getOptinsByActivation

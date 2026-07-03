@@ -235,7 +235,7 @@ router.get('/:activationSlug', async (req, res) => {
   const participants = await db.getParticipantsByActivation(activation.id);
   const results = await db.getResultsByActivation(activation.id);
   const voteMap = {};
-  results.forEach(r => { voteMap[r.slug] = parseInt(r.total) || 0; });
+  results.forEach(r => { voteMap[r.slug] = parseInt(r.positive) || 0; });
   const html = renderActivationLanding(activation, participants, voteMap);
   landingCache.set(req.params.activationSlug, { html, at: Date.now() });
   res.send(html);
@@ -277,6 +277,22 @@ router.get('/:activationSlug/qr', async (req, res) => {
   res.send(renderMasterQRPage(activation, landingUrl, qrDataUrl));
 });
 
+// Lightweight votes-left lookup — pages personalize their badges with this,
+// since the landing page HTML is cached and shared across attendees.
+// Must be registered before /:activationSlug/:participantSlug or it gets swallowed.
+router.get('/:activationSlug/votes-left', async (req, res) => {
+  try {
+    const fp = String(req.query.fp || '');
+    if (fp.length < 4 || fp.length > 128) return res.json({ votesLeft: MAX_BALLOTS, maxVotes: MAX_BALLOTS });
+    const activation = await db.getActivationBySlug(req.params.activationSlug);
+    if (!activation) return res.status(404).json({ error: 'Not found' });
+    const used = await db.countPositiveVotes(activation.id, fp);
+    res.json({ votesLeft: Math.max(0, MAX_BALLOTS - used), maxVotes: MAX_BALLOTS });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
 router.get('/:activationSlug/:participantSlug/profile', async (req, res) => {
   const activation = await db.getActivationBySlug(req.params.activationSlug);
   if (!activation) return res.status(404).send('Not found');
@@ -298,6 +314,8 @@ router.get('/:activationSlug/:participantSlug', async (req, res) => {
   res.send(renderVotingPage(activation, participant, activation.voting_closed, allParticipants));
 });
 
+const MAX_BALLOTS = 5;
+
 router.post('/:activationSlug/:participantSlug/vote', voteLimitPerIp, voteLimitPerDevice, async (req, res) => {
   try {
     const { vote, fingerprint } = req.body;
@@ -312,8 +330,15 @@ router.post('/:activationSlug/:participantSlug/vote', voteLimitPerIp, voteLimitP
     if (!participant) return res.status(404).json({ error: 'Not found' });
     const votingOver = activation.voting_closed || (activation.voting_ends_at && new Date(activation.voting_ends_at) <= new Date());
     if (votingOver) return res.status(403).json({ error: 'Voting is closed' });
+
+    const isPositive = vote !== 'no_thanks';
+    let used = await db.countPositiveVotes(activation.id, fingerprint);
+    if (isPositive && used >= MAX_BALLOTS) {
+      return res.status(403).json({ error: `That's all ${MAX_BALLOTS} of your votes.`, outOfVotes: true, votesLeft: 0 });
+    }
     const result = await db.castVote({ participant_id: participant.id, activation_id: activation.id, vote, browser_fingerprint: fingerprint });
-    res.json(result);
+    if (isPositive && !result.duplicate) used++;
+    res.json({ ...result, votesLeft: Math.max(0, MAX_BALLOTS - used), maxVotes: MAX_BALLOTS });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
@@ -619,6 +644,7 @@ footer{text-align:center;padding:32px max(20px,env(safe-area-inset-right)) max(3
   <a href="/" class="sg-logo"><img src="/logo.png" alt="Silver Glider"><div class="sg-logo-text"><span class="sg-logo-name">Silver Glider</span><span class="sg-logo-sub">Music Discovery</span></div></a>
   <h1>${activation.name}</h1>
   <div class="stats-bar"><span>${participants.length}</span> booth${participants.length !== 1 ? 's' : ''} competing — tap one to vote</div>
+  <div id="ballots-badge" style="display:none;text-align:center;margin-top:10px"><span style="display:inline-block;font-size:13px;font-weight:600;color:#1CC5BE;background:rgba(28,197,190,.08);border:1px solid rgba(28,197,190,.2);border-radius:20px;padding:7px 16px"></span></div>
   <div id="progress-wrap" style="display:none;margin-top:14px;width:100%;max-width:400px;margin-left:auto;margin-right:auto">
     <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">
       <span style="font-size:12px;color:#555;font-weight:600" id="progress-label">0 of ${participants.length} voted</span>
@@ -691,6 +717,31 @@ footer{text-align:center;padding:32px max(20px,env(safe-area-inset-right)) max(3
   var base = '/activations/${activation.slug}/';
 
   function getVoted() { return JSON.parse(localStorage.getItem(key) || '[]'); }
+
+  // Personal votes-left badge — fetched per device since this page is cached and shared
+  (async function () {
+    var badge = document.getElementById('ballots-badge');
+    var pill = badge.querySelector('span');
+    var fp = localStorage.getItem('sg_fp');
+    if (!fp) {
+      badge.style.display = 'block';
+      pill.textContent = 'You have 5 votes — spend them well';
+      return;
+    }
+    try {
+      var res = await fetch('/activations/${activation.slug}/votes-left?fp=' + encodeURIComponent(fp));
+      var data = await res.json();
+      badge.style.display = 'block';
+      if (data.votesLeft <= 0) {
+        pill.textContent = 'All ' + data.maxVotes + ' votes used — winner announced when voting closes';
+        pill.style.color = '#888';
+        pill.style.background = 'rgba(255,255,255,.04)';
+        pill.style.borderColor = 'rgba(255,255,255,.1)';
+      } else {
+        pill.textContent = 'You have ' + data.votesLeft + ' of ' + data.maxVotes + ' votes — spend them well';
+      }
+    } catch (e) {}
+  })();
 
   function getFirstUnvisited() {
     var voted = getVoted();
@@ -836,6 +887,7 @@ footer span{color:#333}
     </div>
     ` : `
     <p class="vote-label">Best Booth Award — cast your vote</p>
+    <p id="votes-left-badge" style="display:none;text-align:center;font-size:13px;font-weight:600;color:#1CC5BE;background:rgba(28,197,190,.08);border:1px solid rgba(28,197,190,.2);border-radius:20px;padding:7px 16px;margin:0 auto 16px;width:fit-content"></p>
     <div class="vote-buttons">
       <button class="vote-btn-primary" onclick="castVote('rules')">
         🔥 This Booth Rules!
@@ -847,11 +899,12 @@ footer span{color:#333}
       </button>
       <button class="vote-btn-secondary" onclick="castVote('no_thanks')">
         😬 Not My Vibe
-        <span style="display:block;font-size:12px;font-weight:400;opacity:.6;margin-top:3px">Not for me</span>
+        <span style="display:block;font-size:12px;font-weight:400;opacity:.6;margin-top:3px">Not for me — doesn't use one of your votes</span>
       </button>
     </div>
     <p class="vote-hint">Top booth wins 2 concert tickets.</p>
     <div id="duplicate-msg">You already voted for this booth.</div>
+    <div id="out-of-votes-msg" style="display:none;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.1);border-radius:12px;padding:16px;text-align:center;font-size:14px;color:#ccc;margin-top:12px">That's all 5 of your votes. You can still browse booths — winner announced when voting closes.</div>
     `}
   </div>
 
@@ -861,8 +914,8 @@ footer span{color:#333}
     </a>
 
     <div class="share-block">
-      <h2>Vote counted.</h2>
-      <p>Help ${participant.name} win — share this page.</p>
+      <h2 id="thanks-headline">Vote counted.</h2>
+      <p id="thanks-sub">Help ${participant.name} win — share this page.</p>
       <button class="share-btn" onclick="shareVote()">Share this booth</button>
     </div>
 
@@ -933,6 +986,29 @@ function updateNextBtn() {
   }
 }
 
+function showVotesLeftBadge(left, max) {
+  var badge = document.getElementById('votes-left-badge');
+  if (!badge) return;
+  badge.style.display = 'block';
+  if (left <= 0) {
+    badge.textContent = 'All ' + max + ' votes used';
+    badge.style.color = '#888';
+    badge.style.background = 'rgba(255,255,255,.04)';
+    badge.style.borderColor = 'rgba(255,255,255,.1)';
+  } else {
+    badge.textContent = 'You have ' + left + ' of ' + max + ' votes left';
+  }
+}
+
+async function loadVotesLeft() {
+  try {
+    var res = await fetch('/activations/' + ACTIVATION_SLUG + '/votes-left?fp=' + encodeURIComponent(getFingerprint()));
+    var data = await res.json();
+    showVotesLeftBadge(data.votesLeft, data.maxVotes);
+  } catch (e) {}
+}
+loadVotesLeft();
+
 async function castVote(vote) {
   const fp = getFingerprint();
   const res = await fetch(window.location.pathname + '/vote', {
@@ -941,6 +1017,11 @@ async function castVote(vote) {
     body: JSON.stringify({ vote, fingerprint: fp })
   });
   const data = await res.json();
+  if (data.outOfVotes) {
+    showVotesLeftBadge(0, data.maxVotes || 5);
+    document.getElementById('out-of-votes-msg').style.display = 'block';
+    return;
+  }
   if (data.duplicate) {
     markVisited();
     updateNextBtn();
@@ -951,6 +1032,20 @@ async function castVote(vote) {
   }
   markVisited();
   updateNextBtn();
+  var headline = document.getElementById('thanks-headline');
+  var sub = document.getElementById('thanks-sub');
+  if (typeof data.votesLeft === 'number') {
+    if (vote === 'no_thanks') {
+      headline.textContent = 'Noted.';
+      sub.textContent = "Didn't use one of your votes — " + data.votesLeft + ' of ' + data.maxVotes + ' left.';
+    } else if (data.votesLeft <= 0) {
+      headline.textContent = "That's all " + data.maxVotes + ' votes.';
+      sub.textContent = 'Winner announced when voting closes. Help ${participant.name} win — share this page.';
+    } else {
+      headline.textContent = 'Vote counted — ' + data.votesLeft + ' left.';
+      sub.textContent = 'Spend them well. Help ${participant.name} win — share this page.';
+    }
+  }
   document.getElementById('vote-section').style.display = 'none';
   document.getElementById('thank-you').style.display = 'block';
 }

@@ -12,6 +12,7 @@ async function runMigrations() {
     WHERE a.id > b.id AND a.participant_id = b.participant_id AND a.browser_fingerprint = b.browser_fingerprint`);
   await pool.query('DROP INDEX IF EXISTS idx_votes_participant_fingerprint');
   await pool.query('CREATE UNIQUE INDEX IF NOT EXISTS uq_votes_participant_fingerprint ON sg_activation_votes (participant_id, browser_fingerprint)');
+  await pool.query('CREATE INDEX IF NOT EXISTS idx_votes_activation_fingerprint ON sg_activation_votes (activation_id, browser_fingerprint)');
 }
 runMigrations().catch(err => console.error('Migration error:', err.message));
 
@@ -67,14 +68,24 @@ async function closeVoting(id) {
 }
 
 async function getWinner(activation_id) {
+  // Winner is ranked on positive votes only — a "no thanks" must never help a booth win
   const r = await pool.query(`
-    SELECT p.*, COUNT(v.id) AS total
+    SELECT p.*, COUNT(v.id) FILTER (WHERE v.vote IN ('rules','hell_yeah')) AS total
     FROM sg_participants p
     LEFT JOIN sg_activation_votes v ON v.participant_id = p.id
     WHERE p.activation_id = $1 AND p.status = 'approved'
     GROUP BY p.id ORDER BY total DESC LIMIT 1
   `, [activation_id]);
   return r.rows[0];
+}
+
+async function countPositiveVotes(activation_id, browser_fingerprint) {
+  const r = await pool.query(
+    `SELECT COUNT(*) AS n FROM sg_activation_votes
+     WHERE activation_id = $1 AND browser_fingerprint = $2 AND vote IN ('rules','hell_yeah')`,
+    [activation_id, browser_fingerprint]
+  );
+  return parseInt(r.rows[0].n) || 0;
 }
 
 async function getParticipantsByActivation(activation_id) {
@@ -151,6 +162,7 @@ async function getResultsByActivation(activation_id) {
       COUNT(v.id) FILTER (WHERE v.vote = 'rules') AS rules,
       COUNT(v.id) FILTER (WHERE v.vote = 'hell_yeah') AS hell_yeah,
       COUNT(v.id) FILTER (WHERE v.vote = 'no_thanks') AS no_thanks,
+      COUNT(v.id) FILTER (WHERE v.vote IN ('rules','hell_yeah')) AS positive,
       COUNT(v.id) AS total
     FROM sg_participants p
     LEFT JOIN sg_activation_votes v ON v.participant_id = p.id
@@ -188,7 +200,7 @@ async function getOptinsByActivation(activation_id) {
 
 module.exports = {
   getActivationBySlug, getAllActivations, createActivation, updateActivation, closeVoting,
-  setVotingEndsAt, autoCloseExpired, getWinner,
+  setVotingEndsAt, autoCloseExpired, getWinner, countPositiveVotes,
   getParticipantsByActivation, getParticipantBySlug, createParticipant, updateParticipant,
   getPendingParticipants, approveParticipant, rejectParticipant,
   castVote, getResultsByActivation, createOptin, getOptinsByActivation, getOptinByEmail

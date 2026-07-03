@@ -115,6 +115,7 @@ tbody td{padding:10px 12px;border-bottom:1px solid #161616}
           </div>
           <img id="p-img-preview" src="" alt="" style="display:none;width:72px;height:72px;border-radius:8px;object-fit:cover;flex-shrink:0;margin-top:22px">
         </div>
+        <input type="text" id="p-instagram" placeholder="Instagram handle (optional)" style="margin-bottom:10px">
         <button class="btn" onclick="addParticipant()">Add Participant</button>
         <div id="p-msg" style="font-size:13px;color:#4caf50;margin-top:8px;min-height:20px"></div>
       </div>
@@ -351,6 +352,7 @@ async function addParticipant() {
   const slug = document.getElementById('p-slug').value.trim();
   const description = document.getElementById('p-desc').value.trim();
   const image_url = document.getElementById('p-img').value.trim();
+  const instagram_handle = document.getElementById('p-instagram').value.trim().replace(/^@/, '');
   const fileInput = document.getElementById('p-img-file');
   if (!name || !slug) return;
 
@@ -364,6 +366,7 @@ async function addParticipant() {
     fd.append('slug', slug);
     fd.append('description', description);
     fd.append('image', fileInput.files[0]);
+    if (instagram_handle) fd.append('instagram_handle', instagram_handle);
     const res = await fetch(`/activations/admin/activations/${currentActivation.id}/participants`, {
       method: 'POST',
       headers: { Authorization: `Bearer ${token}` },
@@ -372,7 +375,7 @@ async function addParticipant() {
     if (res.status === 401) { window.location.href = '/activations-login'; return; }
     result = await res.json();
   } else {
-    result = await api(`/activations/admin/activations/${currentActivation.id}/participants`, 'POST', { name, slug, description, image_url });
+    result = await api(`/activations/admin/activations/${currentActivation.id}/participants`, 'POST', { name, slug, description, image_url, instagram_handle });
   }
 
   msgEl.textContent = result.error || 'Added.';
@@ -380,6 +383,7 @@ async function addParticipant() {
   document.getElementById('p-slug').value = '';
   document.getElementById('p-desc').value = '';
   document.getElementById('p-img').value = '';
+  document.getElementById('p-instagram').value = '';
   fileInput.value = '';
   document.getElementById('img-label-text').textContent = 'Upload photo or paste URL below';
   document.getElementById('p-img-preview').style.display = 'none';

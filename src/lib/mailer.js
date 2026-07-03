@@ -140,7 +140,7 @@ async function sendWelcomeEmail({ to }) {
           <span style="color:#222;margin:0 8px">·</span>
           <a href="https://silverglidertickets.com" style="color:#444;text-decoration:none">silverglidertickets.com</a>
         </p>
-        <p style="font-size:11px;color:#222;margin:0">Silver Glider · 540 Post St, San Francisco, CA 94102</p>
+        <p style="font-size:11px;color:#222;margin:0">Silver Glider · 490 Post St, Suite 500, San Francisco, CA 94102</p>
       </div>
 
     </td></tr>

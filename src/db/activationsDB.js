@@ -1,5 +1,15 @@
 const pool = require('../config/db');
 
+// Run once on startup — safe to re-run
+async function runMigrations() {
+  await pool.query('ALTER TABLE sg_participants ADD COLUMN IF NOT EXISTS instagram_handle TEXT');
+  await pool.query('ALTER TABLE sg_participants ADD COLUMN IF NOT EXISTS booth_song_url TEXT');
+  await pool.query('ALTER TABLE sg_activation_optins ADD COLUMN IF NOT EXISTS email TEXT');
+  await pool.query('ALTER TABLE sg_activations ADD COLUMN IF NOT EXISTS voting_closed BOOLEAN DEFAULT FALSE');
+  await pool.query('CREATE INDEX IF NOT EXISTS idx_votes_participant_fingerprint ON sg_activation_votes (participant_id, browser_fingerprint)');
+}
+runMigrations().catch(err => console.error('Migration error:', err.message));
+
 async function getActivationBySlug(slug) {
   const r = await pool.query('SELECT * FROM sg_activations WHERE slug = $1', [slug]);
   return r.rows[0];

@@ -20,6 +20,17 @@ app.get('/doorlist', (req, res) => res.sendFile(path.resolve(__dirname, 'views',
 app.get('/admin', (req, res) => res.sendFile(path.resolve(__dirname, 'views', 'admin.html')));
 app.get('/tickets', (req, res) => res.sendFile(path.resolve(__dirname, 'views', 'tickets.html')));
 
+app.get('/health', async (req, res) => {
+  const pool = require('./config/db');
+  try {
+    await pool.query('SELECT 1');
+    const sha = require('fs').readFileSync(path.join(__dirname, '../.git-sha'), 'utf8').trim();
+    res.json({ status: 'ok', sha });
+  } catch (err) {
+    res.status(500).json({ status: 'error', error: err.message });
+  }
+});
+
 app.use(require('./middleware/errorHandler'));
 
 const PORT = process.env.PORT || 3000;

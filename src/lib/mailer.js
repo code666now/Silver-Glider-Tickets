@@ -123,12 +123,13 @@ async function sendWelcomeEmail({ to }) {
     </td></tr>
     <tr><td style="border-top:1px solid #1a1a1a;padding-top:40px">
 
-      <h1 style="font-size:32px;font-weight:800;margin:0 0 16px;color:#f0f0f0;letter-spacing:-.02em;line-height:1.1">You're on The Line.</h1>
+      <h1 style="font-size:32px;font-weight:800;margin:0 0 20px;color:#f0f0f0;letter-spacing:-.02em;line-height:1.1">Good taste confirmed.</h1>
 
-      <p style="font-size:16px;color:#888;line-height:1.7;margin:0 0 40px">Every Friday — 3 concerts worth going to this week in San Francisco, straight to your inbox. Free.</p>
+      <p style="font-size:16px;color:#888;line-height:1.7;margin:0 0 12px">Every Friday, 3 SF shows worth your weekend.</p>
+      <p style="font-size:16px;color:#888;line-height:1.7;margin:0 0 40px">We do the digging, you show up.</p>
 
       <div style="background:#111;border:1px solid #1a1a1a;border-radius:12px;padding:20px 24px;margin-bottom:40px">
-        <p style="font-size:11px;color:#444;margin:0 0 6px;text-transform:uppercase;letter-spacing:.1em">First drop</p>
+        <p style="font-size:11px;color:#444;margin:0 0 6px;text-transform:uppercase;letter-spacing:.1em">See you</p>
         <p style="font-size:16px;color:#1CC5BE;margin:0;font-weight:700">This Friday</p>
       </div>
 

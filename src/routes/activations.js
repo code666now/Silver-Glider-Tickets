@@ -23,28 +23,47 @@ function spotifyEmbedUrl(url) {
   return `https://open.spotify.com/embed/${match[1]}/${match[2]}?utm_source=generator&theme=0`;
 }
 
-// Simple in-memory rate limiter: max 30 votes per IP per 10 minutes
-const voteRateLimit = (() => {
+// In-memory rate limiter factory — one Map per limiter, swept every minute
+function makeRateLimiter({ windowMs, max, keyFn, message }) {
   const counts = new Map();
-  const WINDOW_MS = 60 * 60 * 1000;
-  const MAX = 150;
   setInterval(() => {
     const now = Date.now();
     for (const [key, entry] of counts) {
-      if (now - entry.start > WINDOW_MS) counts.delete(key);
+      if (now - entry.start > windowMs) counts.delete(key);
     }
   }, 60 * 1000);
   return (req, res, next) => {
-    const ip = req.headers['x-forwarded-for']?.split(',')[0]?.trim() || req.socket.remoteAddress;
     const now = Date.now();
-    const entry = counts.get(ip) || { count: 0, start: now };
-    if (now - entry.start > WINDOW_MS) { entry.count = 0; entry.start = now; }
+    const key = keyFn(req);
+    const entry = counts.get(key) || { count: 0, start: now };
+    if (now - entry.start > windowMs) { entry.count = 0; entry.start = now; }
     entry.count++;
-    counts.set(ip, entry);
-    if (entry.count > MAX) return res.status(429).json({ error: 'Too many votes. Try again later.' });
+    counts.set(key, entry);
+    if (entry.count > max) return res.status(429).json({ error: message });
     next();
   };
-})();
+}
+
+const ipOf = req => req.headers['x-forwarded-for']?.split(',')[0]?.trim() || req.socket.remoteAddress;
+
+// Per device (IP + fingerprint): normal voter tops out around one vote per booth.
+// Festival WiFi and carrier NAT put hundreds of phones behind one IP, so the
+// pure-IP cap is high — it only exists to stop a single script hammering us.
+const voteLimitPerDevice = makeRateLimiter({
+  windowMs: 60 * 60 * 1000, max: 150,
+  keyFn: req => ipOf(req) + ':' + (req.body?.fingerprint || 'none'),
+  message: 'Too many votes. Try again later.'
+});
+const voteLimitPerIp = makeRateLimiter({
+  windowMs: 60 * 60 * 1000, max: 800,
+  keyFn: ipOf,
+  message: 'Too many votes. Try again later.'
+});
+const optinLimit = makeRateLimiter({
+  windowMs: 60 * 60 * 1000, max: 10,
+  keyFn: ipOf,
+  message: 'Too many signups. Try again later.'
+});
 
 router.post('/admin/login', async (req, res) => {
   const { password } = req.body;
@@ -202,14 +221,24 @@ router.post('/:activationSlug/join', upload.single('image'), async (req, res) =>
   }
 });
 
+// Landing page cache — the master QR sends every attendee here, so at peak this
+// page gets hammered. 30 seconds of staleness on the leaderboard is invisible;
+// the ~95% cut in DB queries is not.
+const landingCache = new Map();
+const LANDING_TTL_MS = 30 * 1000;
+
 router.get('/:activationSlug', async (req, res) => {
+  const cached = landingCache.get(req.params.activationSlug);
+  if (cached && Date.now() - cached.at < LANDING_TTL_MS) return res.send(cached.html);
   const activation = await db.getActivationBySlug(req.params.activationSlug);
   if (!activation || !activation.active) return res.status(404).send('Not found');
   const participants = await db.getParticipantsByActivation(activation.id);
   const results = await db.getResultsByActivation(activation.id);
   const voteMap = {};
   results.forEach(r => { voteMap[r.slug] = parseInt(r.total) || 0; });
-  res.send(renderActivationLanding(activation, participants, voteMap));
+  const html = renderActivationLanding(activation, participants, voteMap);
+  landingCache.set(req.params.activationSlug, { html, at: Date.now() });
+  res.send(html);
 });
 
 router.post('/admin/activations/:id/close-voting', requireActivationsAdmin, async (req, res) => {
@@ -269,16 +298,20 @@ router.get('/:activationSlug/:participantSlug', async (req, res) => {
   res.send(renderVotingPage(activation, participant, activation.voting_closed, allParticipants));
 });
 
-router.post('/:activationSlug/:participantSlug/vote', voteRateLimit, async (req, res) => {
+router.post('/:activationSlug/:participantSlug/vote', voteLimitPerIp, voteLimitPerDevice, async (req, res) => {
   try {
+    const { vote, fingerprint } = req.body;
+    // Without a real fingerprint the dedup constraint can't hold — reject early
+    if (typeof fingerprint !== 'string' || fingerprint.trim().length < 4 || fingerprint.length > 128) {
+      return res.status(400).json({ error: 'Invalid request' });
+    }
+    if (!['rules', 'hell_yeah', 'no_thanks'].includes(vote)) return res.status(400).json({ error: 'Invalid vote' });
     const activation = await db.getActivationBySlug(req.params.activationSlug);
     if (!activation) return res.status(404).json({ error: 'Not found' });
     const participant = await db.getParticipantBySlug(activation.id, req.params.participantSlug);
     if (!participant) return res.status(404).json({ error: 'Not found' });
-    const { vote, fingerprint } = req.body;
     const votingOver = activation.voting_closed || (activation.voting_ends_at && new Date(activation.voting_ends_at) <= new Date());
     if (votingOver) return res.status(403).json({ error: 'Voting is closed' });
-    if (!['rules', 'hell_yeah', 'no_thanks'].includes(vote)) return res.status(400).json({ error: 'Invalid vote' });
     const result = await db.castVote({ participant_id: participant.id, activation_id: activation.id, vote, browser_fingerprint: fingerprint });
     res.json(result);
   } catch (err) {
@@ -286,14 +319,19 @@ router.post('/:activationSlug/:participantSlug/vote', voteRateLimit, async (req,
   }
 });
 
-router.post('/:activationSlug/:participantSlug/optin', async (req, res) => {
+router.post('/:activationSlug/:participantSlug/optin', optinLimit, async (req, res) => {
   try {
+    const email = String(req.body.email || '').trim().toLowerCase();
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email) || email.length > 254) {
+      return res.status(400).json({ error: 'Enter a valid email' });
+    }
     const activation = await db.getActivationBySlug(req.params.activationSlug);
     if (!activation) return res.status(404).json({ error: 'Not found' });
     const participant = await db.getParticipantBySlug(activation.id, req.params.participantSlug);
     if (!participant) return res.status(404).json({ error: 'Not found' });
-    const { email } = req.body;
-    if (!email) return res.status(400).json({ error: 'Email required' });
+    // Already on the list — succeed quietly, no duplicate row, no second welcome email
+    const existing = await db.getOptinByEmail(activation.id, email);
+    if (existing) return res.json({ success: true });
     const optin = await db.createOptin({ activation_id: activation.id, participant_id: participant.id, email });
     sendWelcomeEmail({ to: email }).catch(() => {});
     res.json({ success: true, optin });

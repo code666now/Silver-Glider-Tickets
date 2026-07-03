@@ -7,7 +7,11 @@ async function runMigrations() {
   await pool.query('ALTER TABLE sg_activation_optins ADD COLUMN IF NOT EXISTS email TEXT');
   await pool.query('ALTER TABLE sg_activations ADD COLUMN IF NOT EXISTS voting_closed BOOLEAN DEFAULT FALSE');
   await pool.query('ALTER TABLE sg_activations ADD COLUMN IF NOT EXISTS voting_ends_at TIMESTAMPTZ');
-  await pool.query('CREATE INDEX IF NOT EXISTS idx_votes_participant_fingerprint ON sg_activation_votes (participant_id, browser_fingerprint)');
+  // Dedup enforcement: remove any duplicate votes, then replace the plain index with a UNIQUE one
+  await pool.query(`DELETE FROM sg_activation_votes a USING sg_activation_votes b
+    WHERE a.id > b.id AND a.participant_id = b.participant_id AND a.browser_fingerprint = b.browser_fingerprint`);
+  await pool.query('DROP INDEX IF EXISTS idx_votes_participant_fingerprint');
+  await pool.query('CREATE UNIQUE INDEX IF NOT EXISTS uq_votes_participant_fingerprint ON sg_activation_votes (participant_id, browser_fingerprint)');
 }
 runMigrations().catch(err => console.error('Migration error:', err.message));
 
@@ -128,15 +132,15 @@ async function updateParticipant(id, { name, slug, description, image_url, insta
 }
 
 async function castVote({ participant_id, activation_id, vote, browser_fingerprint }) {
-  const existing = await pool.query(
-    'SELECT id FROM sg_activation_votes WHERE participant_id=$1 AND browser_fingerprint=$2',
-    [participant_id, browser_fingerprint]
-  );
-  if (existing.rows.length > 0) return { duplicate: true };
+  // Atomic dedup — the UNIQUE index rejects the second insert even under concurrent requests
   const r = await pool.query(
-    'INSERT INTO sg_activation_votes (participant_id, activation_id, vote, browser_fingerprint) VALUES ($1,$2,$3,$4) RETURNING *',
+    `INSERT INTO sg_activation_votes (participant_id, activation_id, vote, browser_fingerprint)
+     VALUES ($1,$2,$3,$4)
+     ON CONFLICT (participant_id, browser_fingerprint) DO NOTHING
+     RETURNING *`,
     [participant_id, activation_id, vote, browser_fingerprint]
   );
+  if (r.rows.length === 0) return { duplicate: true };
   return { duplicate: false, vote: r.rows[0] };
 }
 
@@ -166,6 +170,14 @@ async function createOptin({ activation_id, participant_id, email }) {
   return r.rows[0];
 }
 
+async function getOptinByEmail(activation_id, email) {
+  const r = await pool.query(
+    'SELECT id FROM sg_activation_optins WHERE activation_id=$1 AND LOWER(email)=$2 LIMIT 1',
+    [activation_id, email.toLowerCase()]
+  );
+  return r.rows[0];
+}
+
 async function getOptinsByActivation(activation_id) {
   const r = await pool.query(
     'SELECT * FROM sg_activation_optins WHERE activation_id = $1 ORDER BY created_at DESC',
@@ -179,5 +191,5 @@ module.exports = {
   setVotingEndsAt, autoCloseExpired, getWinner,
   getParticipantsByActivation, getParticipantBySlug, createParticipant, updateParticipant,
   getPendingParticipants, approveParticipant, rejectParticipant,
-  castVote, getResultsByActivation, createOptin, getOptinsByActivation
+  castVote, getResultsByActivation, createOptin, getOptinsByActivation, getOptinByEmail
 };

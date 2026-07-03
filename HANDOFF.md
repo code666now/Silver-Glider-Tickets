@@ -26,7 +26,7 @@ All vars are already set in Railway → `honest-beauty` project → `Silver-Glid
 |-----|--------|-------|
 | `DATABASE_URL` | ✅ In Railway | Shared Postgres — tables are prefixed `sg_` |
 | `ACTIVATIONS_ADMIN_PASS` | ✅ In Railway | `activate666` — login to admin panel |
-| `ACTIVATIONS_ADMIN_SECRET` | ⚠️ In Railway as `CTIVATIONS_ADMIN_SECRET` | **Typo — missing the A.** Fix the name when copying to new service |
+| `ACTIVATIONS_ADMIN_SECRET` | ✅ In Railway | Fixed — was previously missing the leading A |
 | `CLOUDINARY_CLOUD_NAME` | ✅ In Railway | Booth photo uploads |
 | `CLOUDINARY_API_KEY` | ✅ In Railway | |
 | `CLOUDINARY_API_SECRET` | ✅ In Railway | |
@@ -70,13 +70,27 @@ Run through this end to end after deploy:
 
 ---
 
+## Emails (all in `src/lib/mailer.js`)
+
+| Function | Trigger | Recipient |
+|----------|---------|-----------|
+| `sendBoothConfirmation` | Booth registers | Vendor contact email |
+| `sendAdminBoothNotification` | Booth registers | rosewoodmarketin@gmail.com |
+| `sendWelcomeEmail` | Attendee opts in for SF picks | Attendee email |
+
+Welcome email includes a concert photo header (`public/concert-bg.jpg` served from Railway).
+
+**Still needed:** weekly Friday picks email — subscribers are collecting but no send mechanism exists yet.
+
+---
+
 ## Architecture Notes
 
 - **Node.js + Express 5, CommonJS** — no build step, `node src/index.js` to run
 - **All activations routes** live in `src/routes/activations.js`
 - **DB functions** in `src/db/activationsDB.js` — migrations run automatically on startup
 - **Photo uploads** via Cloudinary (`src/lib/cloudinary.js`)
-- **Emails** via Resend (`src/lib/mailer.js` → `sendBoothConfirmation`)
+- **Emails** via Resend (`src/lib/mailer.js`) — see Emails section above
 - **Admin auth** is JWT-based, separate from main app auth
 - **Vote dedup** is browser fingerprint (localStorage) + DB check — no login required from voters
 - **Rate limit** is 150 votes per IP per hour, in-memory (resets on restart)

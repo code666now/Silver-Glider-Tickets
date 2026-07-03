@@ -40,14 +40,19 @@ All vars are already set in Railway → `honest-beauty` project → `Silver-Glid
 
 ---
 
-## What He Needs To Do
+## What Gabriel Needs To Do
 
 - [ ] 1. Create new GitHub repo from `feature/silver-glider-activations` branch
-- [ ] 2. In Railway → Silver-Glider-Activations → Settings → Source → point at new repo
-- [ ] 3. Set all env vars from the table above
-- [ ] 4. Deploy and hit `/health` — confirm `{ status: "ok" }`
-- [ ] 5. Set instance RAM to at least 1GB in Railway settings before event day
-- [ ] 6. (Optional) Add custom domain `vote.thriftfest.com` — CNAME to Railway URL
+- [ ] 2. In Railway → `Silver-Glider-Activations` → Settings → Source → point at new repo
+- [ ] 3. Copy all env vars from current service Variables tab into new service (see table above)
+- [ ] 4. Send Adrian the Railway service URL
+- [ ] 5. Adrian adds CNAME in Namecheap: `activations` → `[railway-url].up.railway.app`
+- [ ] 6. In Railway → Settings → Networking → Add Custom Domain → `activations.silverglidertickets.com`
+- [ ] 7. Update `RAILWAY_BASE_URL` → `https://activations.silverglidertickets.com`
+- [ ] 8. Update `RAILWAY_PUBLIC_DOMAIN` → `activations.silverglidertickets.com`
+- [ ] 9. Hit `/health` — confirm `{ status: "ok" }`
+- [ ] 10. Set instance RAM to at least 1GB in Railway settings before event day
+- [ ] 11. Run full test checklist below
 
 ---
 
@@ -81,4 +86,5 @@ Run through this end to end after deploy:
 
 ## Contacts
 - **Adrian** — product, has Railway access, Resend account, Cloudinary account
+- **Gabriel** — engineer, handles repo setup, Railway deploy, DNS
 - Questions on env vars → ask Adrian directly

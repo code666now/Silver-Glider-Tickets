@@ -63,14 +63,24 @@ async function sendOrderConfirmation({ to, buyer_first_name, event, order, ticke
     return;
   }
 
-  console.log(`[mailer] ✉ Llamando a Resend.emails.send (from=${process.env.RESEND_FROM || 'tickets@silverglider.com'}, to=${to})...`);
+  const from = process.env.RESEND_FROM || 'tickets@silverglider.com';
+  console.log(`[mailer] ✉ Llamando a Resend.emails.send (from=${from}, to=${to})...`);
   const result = await resend.emails.send({
-    from: process.env.RESEND_FROM || 'tickets@silverglider.com',
+    from,
     to,
     subject: `You're in — ${event.name}`,
     html
   });
-  console.log(`[mailer] ✓ Resend respondió: id=${result && result.data && result.data.id}`, result && result.error ? `error=${JSON.stringify(result.error)}` : '');
+
+  // El SDK de Resend no lanza en fallo: devuelve { data: null, error }. Sin este throw
+  // el llamador registra el envío como exitoso aunque el correo nunca salga.
+  if (!result || result.error || !result.data || !result.data.id) {
+    const detail = result && result.error ? JSON.stringify(result.error) : 'respuesta sin id';
+    console.error(`[mailer] ✖ Resend rechazó el envío a ${to}: ${detail}`);
+    throw new Error(`Resend send failed: ${detail}`);
+  }
+
+  console.log(`[mailer] ✓ Resend aceptó el envío: id=${result.data.id}`);
   return result;
 }
 

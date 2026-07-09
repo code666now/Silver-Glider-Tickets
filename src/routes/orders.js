@@ -51,22 +51,28 @@ router.post('/resend-tickets', publicLimiter, async (req, res) => {
 
     if (!result.rows.length) return res.json({ found: false });
 
+    if (!process.env.RESEND_API_KEY) {
+      console.error('[resendTickets] ✖ RESEND_API_KEY no configurada; no se reenvió nada');
+      return res.status(503).json({ error: 'Email delivery not configured' });
+    }
+
+    let sent = 0;
     for (const order of result.rows) {
       const tickets = await pool.query('SELECT * FROM sg_tickets WHERE order_id = $1', [order.id]);
       const event = await getEventById(order.event_id);
-      if (process.env.RESEND_API_KEY) {
-        await sendOrderConfirmation({
-          to: email,
-          buyer_first_name: order.buyer_first_name,
-          event,
-          order,
-          tickets: tickets.rows
-        });
-      }
+      await sendOrderConfirmation({
+        to: email,
+        buyer_first_name: order.buyer_first_name,
+        event,
+        order,
+        tickets: tickets.rows
+      });
+      sent++;
     }
 
-    res.json({ found: true, count: result.rows.length });
+    res.json({ found: true, count: sent });
   } catch (err) {
+    console.error('[resendTickets] ✖ Error:', err.message);
     res.status(500).json({ error: err.message });
   }
 });

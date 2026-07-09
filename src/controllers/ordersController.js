@@ -1,4 +1,8 @@
-const { createOrder, getOrderByNumber, getOrdersByEvent, searchOrders, getOrderByExternalId, voidOrderByExternalId } = require('../db/ordersDB');
+const {
+  createOrder, getOrderByNumber, getOrdersByEvent, searchOrders,
+  getOrderByExternalId, voidOrderByExternalId,
+  markEmailAttempt, markEmailSent, recordEmailFailure
+} = require('../db/ordersDB');
 const { createTicket, getTicketsByOrder } = require('../db/ticketsDB');
 const { getEventById, getEventByExternalId, upsertEventByExternal } = require('../db/eventsDB');
 const { generateOrderNumber, generateTicketId } = require('../lib/idGenerator');
@@ -91,17 +95,26 @@ async function importOrder(req, res) {
     }
     console.log(`[importOrder] ✓ ${tickets.length} ticket(s) generado(s): ${tickets.map(t => t.ticket_id).join(', ')}`);
 
+    // El correo no bloquea el import: la orden y los tickets ya existen y son válidos.
+    // Si el envío falla, email_sent_at queda NULL y lib/emailRetry.js lo reintenta.
     if (buyer_email && process.env.RESEND_API_KEY) {
+      await markEmailAttempt(order.id);
       try {
         const event = await getEventById(resolvedEventId);
         console.log(`[importOrder] ✉ Enviando correo de confirmación a ${buyer_email}...`);
         await sendOrderConfirmation({ to: buyer_email, buyer_first_name, event, order, tickets });
+        await markEmailSent(order.id);
         console.log(`[importOrder] ✓ Correo de confirmación enviado a ${buyer_email}`);
       } catch (emailErr) {
-        console.error('[importOrder] ✖ Email failed:', emailErr.message);
+        await recordEmailFailure(order.id, emailErr.message);
+        console.error(`[importOrder] ✖ Email failed (se reintentará): ${emailErr.message}`);
       }
+    } else if (buyer_email) {
+      console.log('[importOrder] ⚠ Correo omitido (no RESEND_API_KEY); quedará pendiente de reintento');
     } else {
-      console.log(`[importOrder] ⚠ Correo omitido (buyer_email=${!!buyer_email}, RESEND_API_KEY=${!!process.env.RESEND_API_KEY})`);
+      // Sin destinatario no hay nada que reintentar: se da por cerrado.
+      await markEmailSent(order.id);
+      console.log('[importOrder] ⚠ Correo omitido (orden sin buyer_email)');
     }
 
     console.log(`[importOrder] ⬆ Respondiendo 201 con orden ${order.order_number}`);

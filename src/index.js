@@ -5,6 +5,11 @@ require('dotenv').config();
 
 const app = express();
 
+// Railway sirve detrás de un proxy inverso que inyecta X-Forwarded-For. Sin esto,
+// express-rate-limit ve la IP del proxy y limita a todos los clientes con un solo cupo.
+// El valor 1 (no `true`) evita que un cliente falsifique su IP añadiendo la cabecera.
+app.set('trust proxy', 1);
+
 // Lista blanca de orígenes (CORS_ORIGINS separados por coma). Vacío = permitir todos.
 const allowedOrigins = (process.env.CORS_ORIGINS || '')
   .split(',')
@@ -29,4 +34,7 @@ app.get('/tickets', (req, res) => res.sendFile(path.resolve(__dirname, 'views', 
 app.use(require('./middleware/errorHandler'));
 
 const PORT = process.env.PORT || 3000;
-app.listen(PORT, () => console.log(`Silver Glider Tickets running on port ${PORT}`));
+app.listen(PORT, () => {
+  console.log(`Silver Glider Tickets running on port ${PORT}`);
+  require('./lib/emailRetry').startEmailRetryWorker();
+});

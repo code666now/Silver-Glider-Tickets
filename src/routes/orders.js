@@ -43,6 +43,7 @@ router.post('/resend-tickets', publicLimiter, async (req, res) => {
     const pool = require('../config/db');
     const { getEventById } = require('../db/eventsDB');
     const { sendOrderConfirmation } = require('../lib/mailer');
+    const { markEmailSent } = require('../db/ordersDB');
 
     const result = await pool.query(
       'SELECT * FROM sg_orders WHERE LOWER(buyer_email) = LOWER($1) AND order_status = $2 ORDER BY created_at DESC',
@@ -67,6 +68,8 @@ router.post('/resend-tickets', publicLimiter, async (req, res) => {
         order,
         tickets: tickets.rows
       });
+      // Cierra el pendiente: si esta orden esperaba reintento, el barredor ya no la toca.
+      await markEmailSent(order.id);
       sent++;
     }
 

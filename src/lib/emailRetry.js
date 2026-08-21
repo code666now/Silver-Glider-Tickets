@@ -14,15 +14,19 @@ const MAX_ATTEMPTS = Number(process.env.EMAIL_RETRY_MAX_ATTEMPTS || 5);
 const TICK_MS = Number(process.env.EMAIL_RETRY_TICK_MS || 60_000);
 const BATCH = 20;
 
-async function retryPendingEmails() {
-  const orders = await claimOrdersPendingEmail({
-    delayMinutes: DELAY_MINUTES,
-    maxAttempts: MAX_ATTEMPTS,
-    limit: BATCH
-  });
-  if (!orders.length) return;
+// overrides permite forzar un barrido manual (ver scripts/send-pending-emails.js) que
+// ignore el retardo y el tope de intentos que usa el tick automático de abajo.
+async function retryPendingEmails(overrides = {}) {
+  const delayMinutes = overrides.delayMinutes ?? DELAY_MINUTES;
+  const maxAttempts = overrides.maxAttempts ?? MAX_ATTEMPTS;
+  const limit = overrides.limit ?? BATCH;
+
+  const orders = await claimOrdersPendingEmail({ delayMinutes, maxAttempts, limit });
+  if (!orders.length) return { claimed: 0, sent: 0, failed: 0 };
 
   console.log(`[emailRetry] ${orders.length} orden(es) con correo pendiente`);
+  let sent = 0;
+  let failed = 0;
   for (const order of orders) {
     try {
       const [tickets, event] = await Promise.all([
@@ -37,16 +41,19 @@ async function retryPendingEmails() {
         tickets
       });
       await markEmailSent(order.id);
+      sent++;
       console.log(`[emailRetry] ✓ ${order.order_number} reenviado (intento ${order.email_attempts})`);
     } catch (err) {
       await recordEmailFailure(order.id, err.message);
-      const restantes = MAX_ATTEMPTS - order.email_attempts;
+      failed++;
+      const restantes = maxAttempts - order.email_attempts;
       console.error(
-        `[emailRetry] ✖ ${order.order_number} falló (intento ${order.email_attempts}/${MAX_ATTEMPTS}` +
-        `${restantes > 0 ? `, reintenta en ${DELAY_MINUTES} min` : ', agotado'}): ${err.message}`
+        `[emailRetry] ✖ ${order.order_number} falló (intento ${order.email_attempts}/${maxAttempts}` +
+        `${restantes > 0 ? `, reintenta en ${delayMinutes} min` : ', agotado'}): ${err.message}`
       );
     }
   }
+  return { claimed: orders.length, sent, failed };
 }
 
 function startEmailRetryWorker() {

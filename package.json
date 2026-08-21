@@ -8,6 +8,8 @@
     "test:integration": "node scripts/test-integration.js",
     "migrate": "node scripts/migrate.js",
     "manual-import": "node scripts/manual-import-order.js",
+    "list-pending-emails": "node scripts/list-pending-emails.js",
+    "send-pending-emails": "node scripts/send-pending-emails.js",
     "start": "node src/index.js",
     "dev": "node --watch src/index.js"
   },

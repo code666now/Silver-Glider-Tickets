@@ -1,42 +1,9 @@
 const {
-  createOrder, getOrderByNumber, getOrdersByEvent, searchOrders,
-  getOrderByExternalId, voidOrderByExternalId,
-  markEmailAttempt, markEmailSent, recordEmailFailure
+  getOrderByNumber, getOrdersByEvent, searchOrders,
+  getOrderByExternalId, voidOrderByExternalId
 } = require('../db/ordersDB');
-const { createTicket, getTicketsByOrder } = require('../db/ticketsDB');
-const { getEventById, getEventByExternalId, upsertEventByExternal } = require('../db/eventsDB');
-const { generateOrderNumber, generateTicketId } = require('../lib/idGenerator');
-const { generateSecureToken } = require('../lib/tokenGenerator');
-const { sendOrderConfirmation } = require('../lib/mailer');
-const { fetchEventoFromPrincipal } = require('../lib/principalClient');
-
-// Devuelve el evento local (sg_events) para un external_event_id, creándolo desde el
-// principal si todavía no existe (pull-on-import). Lanza 422 solo si tampoco existe
-// en el principal.
-async function resolveEventByExternalId(externalEventId) {
-  let event = await getEventByExternalId(externalEventId);
-  if (event) return event;
-
-  console.log(`[importOrder] evento ${externalEventId} no mapeado; resolviendo desde el principal…`);
-  const evento = await fetchEventoFromPrincipal(externalEventId);
-  if (!evento) {
-    const err = new Error('event not mapped');     // tampoco existe en el principal
-    err.statusCode = 422;
-    throw err;
-  }
-
-  // upsertEventByExternal es idempotente por external_event_id: si otro import lo creó
-  // en paralelo, el ON CONFLICT devuelve la fila existente sin duplicar.
-  event = await upsertEventByExternal(String(externalEventId), {
-    name: evento.titulo,
-    event_date: evento.fecha,
-    venue: evento.ubicacion || null,
-    capacity: null,
-    image_url: Array.isArray(evento.galeriaImagenes) ? (evento.galeriaImagenes[0] || null) : null,
-  });
-  console.log(`[importOrder] evento ${externalEventId} auto-creado en sg_events (id local ${event.id}).`);
-  return event;
-}
+const { getTicketsByOrder } = require('../db/ticketsDB');
+const { performImport } = require('../lib/orderImporter');
 
 async function importOrder(req, res) {
   const {
@@ -52,70 +19,29 @@ async function importOrder(req, res) {
     if (external_order_id) {
       const existing = await getOrderByExternalId(external_order_id);
       if (existing) {
+        // external_order_id es UNIQUE en sg_orders: si el buyer_email de esta petición
+        // no coincide con el de la orden ya guardada, es probable que external_order_id
+        // se haya reusado (colisión) y esta petición sea en realidad de OTRO comprador
+        // que nunca llega a tener orden ni correo propios. Ver scripts/manual-import-order.js.
+        if (buyer_email && existing.buyer_email && buyer_email.toLowerCase() !== existing.buyer_email.toLowerCase()) {
+          console.warn(
+            `[importOrder] ⚠ MISMATCH: external_order_id=${external_order_id} ya está asociado a ` +
+            `${existing.order_number} (${existing.buyer_email}), pero esta petición trae buyer_email=${buyer_email}. ` +
+            `Posible colisión/reuso de external_order_id — este comprador no recibirá correo. ` +
+            `Recuperar con: node scripts/manual-import-order.js`
+          );
+        }
         console.log(`[importOrder] ↩ Orden externa ${external_order_id} ya importada (idempotente), devolviendo existente ${existing.order_number}`);
         const tickets = await getTicketsByOrder(existing.id);
         return res.status(200).json({ order: existing, tickets, idempotent: true });
       }
     }
 
-    // Resolución de evento (Opción A: por external_event_id; fallback a event_id local).
-    // Pull-on-import: si el evento externo no está mapeado, se trae del principal y se
-    // auto-crea en sg_events (Opción C). Solo devuelve 422 si tampoco existe allí.
-    let resolvedEventId = event_id;
-    if (external_event_id) {
-      const event = await resolveEventByExternalId(external_event_id);
-      resolvedEventId = event.id;
-    }
-    if (!resolvedEventId) {
-      console.warn('[importOrder] ✖ Falta event_id / external_event_id');
-      return res.status(400).json({ error: 'event_id or external_event_id required' });
-    }
-    console.log(`[importOrder] ✓ Evento resuelto: id=${resolvedEventId}`);
-
-    const order_number = generateOrderNumber();
-    const secure_token = generateSecureToken();
-
-    const order = await createOrder({
-      event_id: resolvedEventId, order_number, buyer_first_name, buyer_last_name,
-      buyer_email, buyer_phone, total_amount, quantity, secure_token, external_order_id
+    const { order, tickets } = await performImport({
+      event_id, external_event_id, external_order_id,
+      buyer_first_name, buyer_last_name, buyer_email, buyer_phone,
+      total_amount, quantity, ticket_type
     });
-    console.log(`[importOrder] ✓ Orden creada: ${order.order_number} (id=${order.id})`);
-
-    const tickets = [];
-    for (let i = 0; i < quantity; i++) {
-      const ticket = await createTicket({
-        order_id: order.id,
-        event_id: resolvedEventId,
-        ticket_id: generateTicketId(),
-        ticket_type: ticket_type || 'General Admission',
-        attendee_first_name: buyer_first_name,
-        attendee_last_name: buyer_last_name
-      });
-      tickets.push(ticket);
-    }
-    console.log(`[importOrder] ✓ ${tickets.length} ticket(s) generado(s): ${tickets.map(t => t.ticket_id).join(', ')}`);
-
-    // El correo no bloquea el import: la orden y los tickets ya existen y son válidos.
-    // Si el envío falla, email_sent_at queda NULL y lib/emailRetry.js lo reintenta.
-    if (buyer_email && process.env.RESEND_API_KEY) {
-      await markEmailAttempt(order.id);
-      try {
-        const event = await getEventById(resolvedEventId);
-        console.log(`[importOrder] ✉ Enviando correo de confirmación a ${buyer_email}...`);
-        await sendOrderConfirmation({ to: buyer_email, buyer_first_name, event, order, tickets });
-        await markEmailSent(order.id);
-        console.log(`[importOrder] ✓ Correo de confirmación enviado a ${buyer_email}`);
-      } catch (emailErr) {
-        await recordEmailFailure(order.id, emailErr.message);
-        console.error(`[importOrder] ✖ Email failed (se reintentará): ${emailErr.message}`);
-      }
-    } else if (buyer_email) {
-      console.log('[importOrder] ⚠ Correo omitido (no RESEND_API_KEY); quedará pendiente de reintento');
-    } else {
-      // Sin destinatario no hay nada que reintentar: se da por cerrado.
-      await markEmailSent(order.id);
-      console.log('[importOrder] ⚠ Correo omitido (orden sin buyer_email)');
-    }
 
     console.log(`[importOrder] ⬆ Respondiendo 201 con orden ${order.order_number}`);
     res.status(201).json({ order, tickets });
@@ -123,6 +49,10 @@ async function importOrder(req, res) {
     if (err.statusCode === 422) {
       console.warn(`[importOrder] ✖ Evento no mapeado para external_event_id=${external_event_id}`);
       return res.status(422).json({ error: err.message, external_event_id });
+    }
+    if (err.statusCode === 400) {
+      console.warn('[importOrder] ✖ Falta event_id / external_event_id');
+      return res.status(400).json({ error: err.message });
     }
     console.error('[importOrder] ✖ Error:', err.message);
     res.status(500).json({ error: err.message });

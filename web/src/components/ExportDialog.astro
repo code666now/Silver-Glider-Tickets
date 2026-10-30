@@ -1,0 +1,72 @@
+---
+// Diálogo de exportación de la lista de puerta: formato (CSV/PDF) y campos opcionales
+// del comprador. El archivo lo genera GET /api/events/:id/door-list/export.
+---
+
+<dialog id="export-dialog" class="dialog" aria-labelledby="export-title">
+  <form method="dialog" class="body" data-export-form>
+    <h2 id="export-title">Download door list</h2>
+
+    <fieldset>
+      <legend>Format</legend>
+      <label class="choice">
+        <input type="radio" name="format" value="csv" checked />
+        <span><strong>CSV</strong><small>Spreadsheet (Excel, Google Sheets)</small></span>
+      </label>
+      <label class="choice">
+        <input type="radio" name="format" value="pdf" />
+        <span><strong>PDF</strong><small>Printable list with check boxes</small></span>
+      </label>
+    </fieldset>
+
+    <fieldset>
+      <legend>Buyer details</legend>
+      <p class="fixed">Always included: buyer name, confirmation #, quantity, ticket type, check-in status.</p>
+      <label class="check">
+        <input type="checkbox" name="include" value="email" />
+        <span>Email</span>
+      </label>
+      <label class="check">
+        <input type="checkbox" name="include" value="phone" />
+        <span>Phone</span>
+      </label>
+      <p class="note">The file contains personal data. Every download is logged.</p>
+    </fieldset>
+
+    <p class="error" data-export-error role="alert"></p>
+
+    <div class="actions">
+      <button class="btn" type="submit" value="cancel" formnovalidate>Cancel</button>
+      <button class="btn-primary" type="button" data-export-submit>Download</button>
+    </div>
+  </form>
+</dialog>
+
+<style>
+  .dialog {
+    margin: auto;
+    background: var(--surface);
+    color: var(--text);
+    border: 1px solid var(--border-strong);
+    border-radius: 14px;
+    width: min(440px, calc(100vw - 32px));
+    padding: 0;
+  }
+  .dialog::backdrop { background: rgba(0, 0, 0, 0.7); }
+  .body { padding: 24px; display: flex; flex-direction: column; gap: 18px; }
+  h2 { font-size: 16px; font-weight: 600; }
+  fieldset { border: none; display: flex; flex-direction: column; gap: 8px; }
+  legend { font-size: 11px; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.06em; margin-bottom: 8px; }
+  .choice, .check {
+    display: flex; align-items: center; gap: 12px;
+    border: 1px solid var(--border); border-radius: 8px; padding: 10px 12px; cursor: pointer;
+  }
+  .choice:has(input:checked), .check:has(input:checked) { border-color: #555555; background: var(--surface-2); }
+  .choice span { display: flex; flex-direction: column; gap: 2px; }
+  .choice small { color: var(--text-muted); font-size: 12px; }
+  input[type='radio'], input[type='checkbox'] { accent-color: var(--accent); width: 16px; height: 16px; }
+  .fixed { font-size: 12px; color: var(--text-muted); line-height: 1.5; }
+  .note { font-size: 11px; color: var(--text-faint); }
+  .error { color: var(--danger); font-size: 13px; min-height: 1em; }
+  .actions { display: flex; justify-content: flex-end; gap: 10px; }
+</style>

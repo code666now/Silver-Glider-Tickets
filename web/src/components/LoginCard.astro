@@ -1,0 +1,42 @@
+---
+// Login del personal local (sg_users). Los publicadores no usan este formulario:
+// entran con el botón "Door list" de su dashboard en Silver Glider (SSO).
+interface Props {
+  id: string;
+  title?: string;
+}
+
+const { id, title = 'Staff Sign In' } = Astro.props;
+---
+
+<section id={id} class="login" hidden>
+  <form class="card" data-login-form novalidate>
+    <h2>{title}</h2>
+    <label class="sr-only" for={`${id}-email`}>Email</label>
+    <input id={`${id}-email`} name="email" type="email" placeholder="Email" autocomplete="username" required />
+    <label class="sr-only" for={`${id}-password`}>Password</label>
+    <input id={`${id}-password`} name="password" type="password" placeholder="Password" autocomplete="current-password" required />
+    <button class="btn-primary" type="submit">Sign In</button>
+    <p class="error" data-login-error role="alert"></p>
+    <p class="hint">Event organizers: open the door list from your Silver Glider dashboard.</p>
+  </form>
+</section>
+
+<style>
+  .card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 24px;
+    max-width: 400px;
+    margin: 60px auto;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+  }
+  h2 { font-size: 12px; color: var(--text-muted); letter-spacing: 0.06em; text-transform: uppercase; margin-bottom: 8px; }
+  input { width: 100%; font-size: 15px; padding: 12px 14px; }
+  button { width: 100%; }
+  .error { color: var(--danger); font-size: 13px; text-align: center; min-height: 1em; }
+  .hint { color: var(--text-faint); font-size: 12px; text-align: center; line-height: 1.5; }
+</style>

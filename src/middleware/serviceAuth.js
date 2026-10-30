@@ -24,7 +24,7 @@ function requireServiceOrAdmin(req, res, next) {
   const token = header.split(' ')[1];
   try {
     const user = jwt.verify(token, process.env.JWT_SECRET);
-    if (user.role !== 'admin') return res.status(403).json({ error: 'Forbidden' });
+    if (user.kind === 'publisher' || user.role !== 'admin') return res.status(403).json({ error: 'Forbidden' });
     req.user = user;
     next();
   } catch {

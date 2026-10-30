@@ -1,8 +1,11 @@
-const { getAllEvents, getEventById, createEvent, updateEvent, upsertEventByExternal } = require('../db/eventsDB');
+const { getAllEvents, getEventsByExternalIds, getEventById, createEvent, updateEvent, upsertEventByExternal } = require('../db/eventsDB');
+const { isPublisher } = require('../middleware/auth');
 
 async function listEvents(req, res) {
   try {
-    const events = await getAllEvents();
+    const events = isPublisher(req.user)
+      ? await getEventsByExternalIds(req.user.eventIds)
+      : await getAllEvents();
     res.json(events);
   } catch (err) {
     res.status(500).json({ error: err.message });

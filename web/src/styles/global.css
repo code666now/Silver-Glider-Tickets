@@ -1,0 +1,75 @@
+/* Tokens de las vistas operativas (doorlist, checkin, admin). Mantienen la identidad
+   oscura de las vistas originales de src/views. */
+:root {
+  --bg: #0a0a0a;
+  --surface: #111111;
+  --surface-2: #1a1a1a;
+  --border: #222222;
+  --border-strong: #333333;
+  --text: #f0f0f0;
+  --text-muted: #8a8a8a;
+  --text-faint: #555555;
+  --accent: #f0f0f0;
+  --on-accent: #0a0a0a;
+  --ok: #4caf50;
+  --warn: #ffc107;
+  --info: #5588ff;
+  --danger: #ff5c5c;
+  --radius: 10px;
+  --font: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  --mono: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  color-scheme: dark;
+}
+
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: var(--font);
+  min-height: 100vh;
+  -webkit-font-smoothing: antialiased;
+}
+
+button { font: inherit; cursor: pointer; }
+button:disabled { cursor: not-allowed; opacity: 0.6; }
+:focus-visible { outline: 2px solid var(--info); outline-offset: 2px; }
+
+input, select {
+  font: inherit;
+  background: var(--surface-2);
+  border: 1px solid #2a2a2a;
+  color: var(--text);
+  padding: 10px 14px;
+  border-radius: 8px;
+  outline: none;
+}
+input:focus, select:focus { border-color: #4a4a4a; }
+input::placeholder { color: #4a4a4a; }
+
+.btn {
+  background: var(--surface-2);
+  border: 1px solid var(--border-strong);
+  color: #cccccc;
+  padding: 8px 16px;
+  border-radius: 8px;
+  font-size: 13px;
+}
+.btn:hover:not(:disabled) { border-color: #555555; color: #ffffff; }
+.btn-primary {
+  background: var(--accent);
+  color: var(--on-accent);
+  border: none;
+  padding: 11px 18px;
+  border-radius: 8px;
+  font-weight: 600;
+  font-size: 14px;
+}
+.btn-ghost { background: none; border: 1px solid var(--border-strong); color: var(--text-muted); padding: 6px 12px; border-radius: 8px; font-size: 12px; }
+
+[hidden] { display: none !important; }
+
+.sr-only {
+  position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px;
+  overflow: hidden; clip: rect(0, 0, 0, 0); white-space: nowrap; border: 0;
+}

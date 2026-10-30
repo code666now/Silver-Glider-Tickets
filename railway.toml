@@ -1,2 +1,6 @@
+[build]
+# Construye las vistas Astro (web/ → web/dist) que sirve Express.
+buildCommand = "npm run build"
+
 [deploy]
 startCommand = "node src/index.js"

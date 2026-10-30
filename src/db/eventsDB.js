@@ -5,6 +5,16 @@ async function getAllEvents() {
   return result.rows;
 }
 
+// Eventos de un publicador: solo los que el principal le asignó (eventIds del SSO).
+async function getEventsByExternalIds(externalIds) {
+  if (!externalIds?.length) return [];
+  const result = await pool.query(
+    'SELECT * FROM sg_events WHERE external_event_id = ANY($1::varchar[]) ORDER BY event_date DESC',
+    [externalIds.map(String)]
+  );
+  return result.rows;
+}
+
 async function getEventById(id) {
   const result = await pool.query('SELECT * FROM sg_events WHERE id = $1', [id]);
   return result.rows[0];
@@ -48,4 +58,4 @@ async function upsertEventByExternal(external_event_id, { name, event_date, venu
   return result.rows[0];
 }
 
-module.exports = { getAllEvents, getEventById, createEvent, updateEvent, getEventByExternalId, upsertEventByExternal };
+module.exports = { getAllEvents, getEventsByExternalIds, getEventById, createEvent, updateEvent, getEventByExternalId, upsertEventByExternal };

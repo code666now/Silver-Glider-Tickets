@@ -1,0 +1,63 @@
+---
+// Layout de las vistas operativas internas (personal de puerta y publicadores).
+import '../styles/global.css';
+
+interface Props {
+  title: string;
+  section: string;
+}
+
+const { title, section } = Astro.props;
+---
+
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="robots" content="noindex, nofollow" />
+    <meta name="referrer" content="no-referrer" />
+    <title>{title} — Silver Glider</title>
+  </head>
+  <body>
+    <header class="app-header">
+      <div class="brand">
+        <span class="mark" aria-hidden="true">⬡</span>
+        <span class="name">Silver Glider</span>
+        <span class="divider" aria-hidden="true">/</span>
+        <span class="section">{section}</span>
+      </div>
+      <div class="header-slot">
+        <slot name="header-actions" />
+      </div>
+    </header>
+    <main class="container">
+      <slot />
+    </main>
+  </body>
+</html>
+
+<style>
+  .app-header {
+    background: var(--surface);
+    border-bottom: 1px solid var(--border);
+    padding: 14px 24px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+    flex-wrap: wrap;
+  }
+  .brand { display: flex; align-items: baseline; gap: 10px; font-size: 16px; letter-spacing: 0.04em; }
+  .mark { font-size: 18px; }
+  .name { font-weight: 600; }
+  .divider { color: var(--text-faint); }
+  .section { color: var(--text-muted); }
+  .header-slot { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
+  .container { padding: 24px; max-width: 1160px; margin: 0 auto; }
+
+  @media print {
+    .app-header { display: none; }
+    .container { padding: 0; max-width: none; }
+  }
+</style>

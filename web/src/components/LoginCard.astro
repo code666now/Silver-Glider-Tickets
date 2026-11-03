@@ -1,15 +1,29 @@
 ---
 // Login del personal local (sg_users). Los publicadores no usan este formulario:
-// entran con el botón "Door list" de su dashboard en Silver Glider (SSO).
+// entran por SSO desde Silver Glider (botón "Door list" del dashboard o la página puente
+// /doorlist-access del front principal).
 interface Props {
   id: string;
   title?: string;
 }
 
 const { id, title = 'Staff Sign In' } = Astro.props;
+
+// PUBLIC_PRINCIPAL_URL se fija al compilar (Astro la incrusta en el build), así que debe
+// existir en Railway antes del build. Solo se acepta http(s); sin ella no se muestra el botón.
+const rawPrincipal = (import.meta.env.PUBLIC_PRINCIPAL_URL ?? '').trim().replace(/\/+$/, '');
+const principalUrl = /^https?:\/\//i.test(rawPrincipal) ? rawPrincipal : '';
+const publisherHref = principalUrl ? `${principalUrl}/doorlist-access` : '';
 ---
 
 <section id={id} class="login" hidden>
+  {publisherHref && (
+    <div class="card publisher">
+      <h2>Event organizers</h2>
+      <a class="btn-primary" href={publisherHref}>Entrar con Silver Glider</a>
+      <p class="hint">Inicia sesión en Silver Glider y volverás aquí con acceso a tus eventos.</p>
+    </div>
+  )}
   <form class="card" data-login-form novalidate>
     <h2>{title}</h2>
     <label class="sr-only" for={`${id}-email`}>Email</label>
@@ -18,7 +32,9 @@ const { id, title = 'Staff Sign In' } = Astro.props;
     <input id={`${id}-password`} name="password" type="password" placeholder="Password" autocomplete="current-password" required />
     <button class="btn-primary" type="submit">Sign In</button>
     <p class="error" data-login-error role="alert"></p>
-    <p class="hint">Event organizers: open the door list from your Silver Glider dashboard.</p>
+    {!publisherHref && (
+      <p class="hint">Event organizers: open the door list from your Silver Glider dashboard.</p>
+    )}
   </form>
 </section>
 
@@ -34,6 +50,9 @@ const { id, title = 'Staff Sign In' } = Astro.props;
     flex-direction: column;
     gap: 12px;
   }
+  .publisher { margin-bottom: 0; }
+  .publisher + .card { margin-top: 16px; }
+  .publisher .btn-primary { display: block; text-align: center; text-decoration: none; padding: 12px 14px; }
   h2 { font-size: 12px; color: var(--text-muted); letter-spacing: 0.06em; text-transform: uppercase; margin-bottom: 8px; }
   input { width: 100%; font-size: 15px; padding: 12px 14px; }
   button { width: 100%; }

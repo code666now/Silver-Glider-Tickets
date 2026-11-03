@@ -45,6 +45,33 @@ Deuda conocida (sin resolver):
 
 ---
 
+## 2026-11-02 — Botón "Entrar con Silver Glider" en el login de /doorlist (fase 4 de feat-frontend.md)
+
+**Pedido por:** gab.
+
+### Qué se hizo
+- `web/src/components/LoginCard.astro`: nueva tarjeta "Event organizers" con el botón
+  **Entrar con Silver Glider**, que lleva a `{PUBLIC_PRINCIPAL_URL}/doorlist-access` (página
+  puente del front principal). El formulario de staff se mantiene debajo.
+- La URL sale de `PUBLIC_PRINCIPAL_URL`, variable de **build** de Astro (se incrusta al
+  compilar). Solo se acepta `http(s)://`; se quita la barra final. Si falta, no se muestra
+  el botón y queda el texto anterior.
+- `.env.example`: documentada `PUBLIC_PRINCIPAL_URL`.
+
+### Por qué
+Quien llegaba directo a `/doorlist` solo veía un texto; ahora un publicador puede iniciar
+el SSO desde el micro (el front principal lo reenvía al login y de vuelta con `next`).
+
+### Despliegue
+Definir `PUBLIC_PRINCIPAL_URL` en Railway (micro) **antes** del deploy; si se cambia, hay
+que redesplegar para recompilar. Requiere que el front principal tenga `/doorlist-access`.
+
+### Verificación
+`astro build` con y sin la variable: con ella el HTML trae el enlace correcto; sin ella no
+hay botón y aparece el texto anterior. No se probó en navegador.
+
+---
+
 ## 2026-10-23 02:18 — SSO de publicadores, exportación CSV/PDF del door list y vistas con Astro
 
 **Pedido por:** gab.
